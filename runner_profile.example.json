@@ -7,10 +7,16 @@
     "d'environnement (voir .env.example) pour un deploiement Vercel."
   ],
 
-  "raceName": "Marathon",
-  "raceDate": "2027-04-11",
-  "planWeeks": 15,
-  "taperWeeks": 3,
+  "raceName": "Trail 22 km",
+  "raceDate": "2027-03-13",
+  "_comment_start": [
+    "planStart force la date de debut de la reprise. Sans cette cle, le plan",
+    "demarre automatiquement 4 jours avant la S1. Utile pour inclure un footing",
+    "de reprise avant la premiere semaine numerotee."
+  ],
+  "planStart": "2026-09-08",
+  "planWeeks": 26,
+  "taperWeeks": 2,
 
   "_comment_goal": [
     "goalTime prime sur tout. Laisse-le vide pour que l'objectif soit projete",
@@ -39,14 +45,15 @@
   "restWeekday": 0,
 
   "_comment_volume": [
-    "Bornes de la rampe de sortie longue, en km. Ce sont les deux nombres qui",
-    "pilotent tout le volume : decharges, affutage et dose d'allure marathon",
-    "s'en deduisent."
+    "Bornes de la sortie longue, en km, calibrees pour un trail 22 km.",
+    "La rampe monte jusqu'a 24 km (legerement au-dessus de la distance course)",
+    "pour construire la confiance et l'endurance specifique sans atteindre les",
+    "volumes marathon (30 km) inutiles a cette distance."
   ],
-  "longStartKm": 16,
-  "longPeakKm": 30,
-  "longAmStartKm": 6,
-  "longAmPeakKm": 18,
+  "longStartKm": 12,
+  "longPeakKm": 24,
+  "longAmStartKm": 5,
+  "longAmPeakKm": 12,
 
   "_comment_name": "Nom imprime sur le PDF du plan. Laisse vide pour l'omettre.",
   "runnerName": ""
