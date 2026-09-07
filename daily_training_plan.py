@@ -347,13 +347,13 @@ def _quality_for_week(week_num: int, phase: str, shape: dict[str, Any]) -> dict[
     """Seance dure de la semaine. Le type suit la phase, jamais le hasard."""
     if phase == "race_week":
         return _quality_plan(
-            "Rappel allure marathon",
+            "Rappel allure objectif",
             f"30' facile dont 3 x 1 km a {GOAL_PACE_TIGHT}, recup 2' facile",
             tag="marathon-pace",
         )
     if phase == "taper":
         return _quality_plan(
-            "Allure marathon controlee",
+            "Allure objectif controlee",
             f"3 x 2 km a {GOAL_PACE_TIGHT}, recup 1' trot",
             tag="marathon-pace",
         )
@@ -366,7 +366,7 @@ def _quality_for_week(week_num: int, phase: str, shape: dict[str, Any]) -> dict[
         )
     if week_num in shape["deloads"]:
         return _quality_plan(
-            "Rappel allure marathon leger",
+            "Rappel allure objectif leger",
             f"3 x 2 km a {GOAL_PACE_TIGHT}, recup 2' trot, sans accelerer",
             tag="marathon-pace",
         )
@@ -391,7 +391,7 @@ def _quality_for_week(week_num: int, phase: str, shape: dict[str, Any]) -> dict[
     slot = (week_num - shape["baseWeeks"] - 1) % 4
     if slot == 1:
         return _quality_plan(
-            "Bloc allure marathon",
+            "Bloc allure objectif",
             f"5 x 2 km a {GOAL_PACE_TIGHT}, recup 1' trot",
             tag="marathon-pace",
         )
@@ -413,11 +413,13 @@ def _quality_for_week(week_num: int, phase: str, shape: dict[str, Any]) -> dict[
 def _long_for_week(week_num: int, phase: str, shape: dict[str, Any]) -> dict[str, Any]:
     """Sortie longue de la semaine, avec sa dose eventuelle d'allure marathon."""
     if phase == "peak":
+        test_km = max(18, PROFILE.long_peak_km - 2)
         semi_target = fmt_clock(PROFILE.projected("semi"))
         return _long_plan(
-            "Semi-marathon test",
-            f"Semi test : viser {semi_target} ({SEMI_PACE}), ou 21 km dont 15 km a {GOAL_PACE}. "
-            "C'est ce chrono qui arrete la cible du jour J.",
+            f"Sortie test trail {test_km} km",
+            f"Sortie test {test_km} km sur terrain varie : viser {semi_target} ({SEMI_PACE}) "
+            f"sur les portions roulantes, ou les 2/3 en allure objectif. "
+            f"Simule les conditions du {RACE_NAME}. C'est ce run qui valide la cible du jour J.",
             tag="race-test",
         )
     if phase == "taper":
@@ -922,9 +924,9 @@ def _render_session(session: dict[str, Any]) -> dict[str, str]:
             "title": _session_title(session),
             "warmup": "5-10' tres facile + mobilite courte",
             "main": (
-                f"Marathon : premiers kilometres volontairement freines, puis installer "
-                f"{GOAL_PACE_TIGHT} (cible {PROFILE.goal_label}). Ne rien tenter de plus vite "
-                "avant le 30e kilometre."
+                f"{RACE_NAME} : partir conservateur, puis installer "
+                f"{GOAL_PACE_TIGHT} (cible {PROFILE.goal_label}). "
+                "Respecter le terrain, les relances et le ravitaillement."
             ),
             "cooldown": "5-10' de marche et ravitaillement",
         }
@@ -1522,20 +1524,20 @@ def _adaptive_quality(day: date, ctx: dict[str, Any], phase: str) -> dict[str, A
     week_index = max(0, (day - PLAN_START).days // 7)
     if phase == "race_week":
         return _quality_plan(
-            "Rappel allure marathon",
+            "Rappel allure objectif",
             f"30' facile dont 3 x 1 km a {GOAL_PACE_TIGHT}, recup 2' facile",
             tag="marathon-pace",
         )
     if phase == "taper":
         return _quality_plan(
-            "Allure marathon controlee",
+            "Allure objectif controlee",
             f"3 x 2 km a {GOAL_PACE_TIGHT}, recup 1' trot",
             tag="marathon-pace",
         )
     if phase in {"specific", "peak"}:
         if week_index % 2 == 0:
             return _quality_plan(
-                "Bloc allure marathon",
+                "Bloc allure objectif",
                 f"2 x 5 km a {GOAL_PACE_TIGHT}, recup 2' trot",
                 tag="marathon-pace",
             )
@@ -2882,10 +2884,10 @@ def _session_paces_hr(session: dict[str, Any]) -> tuple[list[dict], list[dict]]:
             paces.append(_pace_chip("Recuperation entre blocs", "trot facile", ""))
             hr.append(_hr_target("threshold", "Pendant les blocs", "FC stable sur chaque bloc : si elle derive, l'allure est trop rapide."))
         elif tag == "marathon-pace":
-            paces.append(_pace_chip("Blocs allure marathon", GOAL_PACE, f"cible {GOAL_PACE_TIGHT}, au metronome"))
-            hr.append(_hr_target("marathon", "Pendant les blocs AM", f"C'est LA donnee a surveiller : memoriser la FC a {GOAL_PACE_TIGHT} pour le jour J."))
+            paces.append(_pace_chip("Blocs allure objectif", GOAL_PACE, f"cible {GOAL_PACE_TIGHT}, au metronome"))
+            hr.append(_hr_target("marathon", "Pendant les blocs", f"Memoriser la FC a {GOAL_PACE_TIGHT} : c'est la reference pour le jour J."))
         elif tag == "tempo":
-            paces.append(_pace_chip("Tempo", "4:30/km", "entre seuil et allure marathon"))
+            paces.append(_pace_chip("Tempo", "4:30/km", "entre seuil et allure objectif"))
             hr.append(_hr_target("semi", "Tempo", "Controle : sous la FC de seuil."))
         else:
             paces.append(_pace_chip("Corps de seance", session.get("pace_range", THRESHOLD_PACE)))
@@ -2898,9 +2900,9 @@ def _session_paces_hr(session: dict[str, Any]) -> tuple[list[dict], list[dict]]:
     if category == "long":
         if _has_am_block(session):
             paces.append(_pace_chip("Partie facile", "5:20-5:50/km", "aisance totale, on economise pour le bloc"))
-            paces.append(_pace_chip("Bloc allure marathon", GOAL_PACE, f"cible {GOAL_PACE_TIGHT}"))
-            hr.append(_hr_target("easy", "Partie facile", "Rester bas : le bloc AM doit demarrer frais."))
-            hr.append(_hr_target("marathon", "Bloc AM", "Noter la FC moyenne du bloc : c'est la reference jour J."))
+            paces.append(_pace_chip("Bloc allure objectif", GOAL_PACE, f"cible {GOAL_PACE_TIGHT}"))
+            hr.append(_hr_target("easy", "Partie facile", "Rester bas : le bloc doit demarrer frais."))
+            hr.append(_hr_target("marathon", "Bloc allure objectif", "Noter la FC moyenne du bloc : c'est la reference jour J."))
         else:
             paces.append(_pace_chip("Sortie longue facile", "5:20-5:50/km", "volume, pas d'intensite"))
             hr.append(_hr_target("easy", "Toute la sortie", "Derive FC en fin de sortie normale si elle reste sous ~80%."))
