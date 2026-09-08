@@ -6,7 +6,7 @@ import {
 } from 'recharts'
 import { Search } from 'lucide-react'
 import { useActivities } from '../contexts/ActivityContext'
-import { computeMonthly, computeYearly, computeRolling, parseLocalDate, localDateStr, getMonday, fmtPace, fmtTime } from '../lib/compute'
+import { computeMonthly, computeYearly, computeRolling, computeRollingElev, parseLocalDate, localDateStr, getMonday, fmtPace, fmtTime } from '../lib/compute'
 import ChartCard from '../components/ChartCard'
 import Loader from '../components/Loader'
 import WeeklyHeatmap from '../components/WeeklyHeatmap'
@@ -244,6 +244,7 @@ export default function Volume() {
   const rolling7 = useMemo(() => computeRolling(allActivities, 7), [allActivities])
   const rolling90 = useMemo(() => computeRolling(allActivities, 90), [allActivities])
   const rolling365 = useMemo(() => computeRolling(allActivities, 365), [allActivities])
+  const rollingElev90 = useMemo(() => computeRollingElev(allActivities, 90), [allActivities])
   const monthly = useMemo(() => computeMonthly(activities), [activities])
   const yearly = useMemo(() => computeYearly(activities), [activities])
   const weekly = useMemo(() => {
@@ -251,9 +252,11 @@ export default function Volume() {
     const byWeek = {}
     activities.forEach(a => {
       const weekKey = localDateStr(getMonday(parseLocalDate(a.start_date_local)))
-      byWeek[weekKey] = (byWeek[weekKey] || 0) + (a.distance || 0)
+      if (!byWeek[weekKey]) byWeek[weekKey] = { km: 0, elev: 0 }
+      byWeek[weekKey].km += (a.distance || 0) / 1000
+      byWeek[weekKey].elev += a.total_elevation_gain || 0
     })
-    return Object.entries(byWeek).map(([week, dist]) => ({ week, km: Math.round((dist / 1000) * 100) / 100 })).sort((a, b) => a.week.localeCompare(b.week))
+    return Object.entries(byWeek).map(([week, d]) => ({ week, km: Math.round(d.km * 100) / 100, elev: Math.round(d.elev) })).sort((a, b) => a.week.localeCompare(b.week))
   }, [activities])
 
   const yearlyReg = useMemo(() => computeYearlyRegularity(activities), [activities])
@@ -461,6 +464,74 @@ export default function Volume() {
       </div>
 
       </div>{/* end Volumes glissants wrapper */}
+
+      {/* Section Dénivelé */}
+      <div className="mt-8 volume_elev_section" data-name="volume_elev_section">
+        <h3 className="text-sm font-medium text-txt-secondary mb-3 volume_elev_section_title" data-name="volume_elev_section_title">Dénivelé positif (D+)</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 volume_elev_grid" data-name="volume_elev_grid">
+
+          <ChartCard title="D+ hebdomadaire" name="volume_elev_weekly_bar">
+            {weekly.filter(w => w.elev > 0).length > 0 && (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={weekly}>
+                  <defs>
+                    <linearGradient id="gradElevWeekly" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.85} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0.35} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid {...gridStyle} />
+                  <XAxis dataKey="week" tick={{ ...axisStyle, fontSize: 10 }} tickFormatter={d => d.slice(5)} />
+                  <YAxis tick={axisStyle} unit=" m" />
+                  <Tooltip content={<Tip />} />
+                  <Bar dataKey="elev" fill="url(#gradElevWeekly)" name="D+ (m)" radius={[4, 4, 0, 0]} animationDuration={800} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="D+ mensuel" name="volume_elev_monthly_bar">
+            {monthly.filter(m => m.elev > 0).length > 0 && (
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={monthly}>
+                  <defs>
+                    <linearGradient id="gradElevMonthly" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.85} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0.35} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid {...gridStyle} />
+                  <XAxis dataKey={d => `${d.year}-${d.month}`} tick={{ ...axisStyle, fontSize: 10 }} />
+                  <YAxis tick={axisStyle} unit=" m" />
+                  <Tooltip content={<Tip />} />
+                  <Bar dataKey="elev" fill="url(#gradElevMonthly)" name="D+ (m)" radius={[4, 4, 0, 0]} animationDuration={800} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+          <ChartCard title="D+ 90 jours glissants" name="volume_elev_rolling_90">
+            {rollingElev90.filter(r => r.elev > 0).length > 0 && (
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={rollingElev90}>
+                  <defs>
+                    <linearGradient id="gradElevRolling90" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid {...gridStyle} />
+                  <XAxis dataKey="date" tick={{ ...axisStyle, fontSize: 10 }} tickFormatter={d => d.slice(5)} />
+                  <YAxis tick={axisStyle} unit=" m" />
+                  <Tooltip content={<Tip />} />
+                  <Area type="monotone" dataKey="elev" stroke="#10b981" strokeWidth={2} fill="url(#gradElevRolling90)" name="D+ 90j (m)" connectNulls animationDuration={1200} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </ChartCard>
+
+        </div>
+      </div>
 
       {/* Courses list */}
       <div className="mt-8 volume_runs_section" data-name="volume_runs_section">

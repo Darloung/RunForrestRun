@@ -720,12 +720,13 @@ export function computeMonthly(activities) {
   activities.forEach(a => {
     const dt = parseDate(a.start_date_local)
     const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
-    if (!buckets[key]) buckets[key] = { year: String(dt.getFullYear()), month: String(dt.getMonth() + 1).padStart(2, '0'), km: 0, runs: 0, time_s: 0 }
+    if (!buckets[key]) buckets[key] = { year: String(dt.getFullYear()), month: String(dt.getMonth() + 1).padStart(2, '0'), km: 0, runs: 0, time_s: 0, elev: 0 }
     buckets[key].km += a.distance / 1000
     buckets[key].runs++
     buckets[key].time_s += a.moving_time || 0
+    buckets[key].elev += a.total_elevation_gain || 0
   })
-  return Object.values(buckets).sort((a, b) => `${a.year}-${a.month}`.localeCompare(`${b.year}-${b.month}`)).map(r => ({ ...r, km: Math.round(r.km * 100) / 100 }))
+  return Object.values(buckets).sort((a, b) => `${a.year}-${a.month}`.localeCompare(`${b.year}-${b.month}`)).map(r => ({ ...r, km: Math.round(r.km * 100) / 100, elev: Math.round(r.elev) }))
 }
 
 export function computeYearly(activities) {
@@ -793,6 +794,38 @@ export function computeRolling(activities, days = 90) {
     d.setDate(d.getDate() + 1)
   }
   console.log('[ROLLING] days=', days, 'first=', result[0]?.date, '→', result[0]?.km, 'last=', result[result.length - 1]?.date, '→', result[result.length - 1]?.km, 'len=', result.length)
+  return result
+}
+
+export function computeRollingElev(activities, days = 90) {
+  const now = new Date(getNow())
+  const todayKey = localDateStr(now)
+  const start = new Date(now)
+  start.setDate(start.getDate() - days * 2)
+  start.setHours(0, 0, 0, 0)
+  const daily = {}
+  activities.forEach(a => {
+    const dt = parseDate(a.start_date_local)
+    const d = localDateStr(dt)
+    daily[d] = (daily[d] || 0) + (a.total_elevation_gain || 0)
+  })
+  const keys = Object.keys(daily).sort()
+  const prefix = new Array(keys.length + 1)
+  prefix[0] = 0
+  keys.forEach((k, i) => { prefix[i + 1] = prefix[i] + daily[k] })
+  const lowerBound = target => { let lo = 0, hi = keys.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (keys[mid] < target) lo = mid + 1; else hi = mid } return lo }
+  const upperBound = target => { let lo = 0, hi = keys.length; while (lo < hi) { const mid = (lo + hi) >> 1; if (keys[mid] <= target) lo = mid + 1; else hi = mid } return lo }
+  const result = []
+  const d = new Date(start)
+  while (localDateStr(d) <= todayKey) {
+    const ds = localDateStr(d)
+    const windowStart = new Date(d)
+    windowStart.setDate(windowStart.getDate() - days)
+    const ws = localDateStr(windowStart)
+    const total = prefix[upperBound(ds)] - prefix[lowerBound(ws)]
+    result.push({ date: ds, elev: Math.round(total) })
+    d.setDate(d.getDate() + 1)
+  }
   return result
 }
 

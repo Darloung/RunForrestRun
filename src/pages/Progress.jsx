@@ -50,6 +50,8 @@ function aggregate(runs, days) {
   const pace = paceRuns.length
     ? paceRuns.reduce((s, a) => s + 1000 / a.average_speed, 0) / paceRuns.length : 0
   const long = runs.length ? Math.max(...runs.map(a => a.distance)) / 1000 : 0
+  const totalElev = runs.reduce((s, a) => s + (a.total_elevation_gain || 0), 0)
+  const maxElev = runs.length ? Math.max(...runs.map(a => a.total_elevation_gain || 0)) : 0
   return {
     km: Math.round(km),
     kmWeek: Math.round((km / weeks) * 10) / 10,
@@ -58,6 +60,9 @@ function aggregate(runs, days) {
     pace,
     paceStr: pace > 0 ? fmtPace(pace) : '-',
     long: Math.round(long * 10) / 10,
+    totalElev: Math.round(totalElev),
+    elevWeek: Math.round(totalElev / weeks),
+    maxElev: Math.round(maxElev),
   }
 }
 
@@ -100,6 +105,24 @@ function computeKmEvolution(activities) {
     const window = runs.slice(Math.max(0, i - 9), i + 1)
     const avgKm = window.reduce((s, w) => s + w.km, 0) / window.length
     return { ...r, avgKm: Math.round(avgKm * 10) / 10 }
+  })
+}
+
+function computeElevEvolution(activities) {
+  const runs = activities
+    .filter(a => a.total_elevation_gain > 0)
+    .sort((a, b) => a.start_date_local.localeCompare(b.start_date_local))
+    .map(a => ({
+      date: a.start_date_local.slice(0, 10),
+      id: a.id,
+      name: a.name,
+      elev: Math.round(a.total_elevation_gain),
+      km: Math.round(a.distance / 100) / 10,
+    }))
+  return runs.map((r, i) => {
+    const window = runs.slice(Math.max(0, i - 9), i + 1)
+    const avgElev = window.reduce((s, w) => s + w.elev, 0) / window.length
+    return { ...r, avgElev: Math.round(avgElev) }
   })
 }
 
@@ -152,8 +175,10 @@ export default function Progress() {
 
   const paceEvolution = useMemo(() => computePaceEvolution(activities), [activities])
   const kmEvolution = useMemo(() => computeKmEvolution(activities), [activities])
+  const elevEvolution = useMemo(() => computeElevEvolution(activities), [activities])
   const pacePointGraph = usePointGraph(paceEvolution, { yKey: 'pace', better: 'lower', minVisiblePoints: 12 })
   const kmPointGraph = usePointGraph(kmEvolution, { yKey: 'km', better: 'higher', minVisiblePoints: 12 })
+  const elevPointGraph = usePointGraph(elevEvolution, { yKey: 'elev', better: 'higher', minVisiblePoints: 12 })
 
   // Format d'axe temporel adaptatif : "MM-DD" sur une période courte, "AA-MM"
   // dès que la fenêtre couvre plusieurs années (sinon l'année disparaît).
@@ -206,12 +231,13 @@ export default function Progress() {
       <h2 className="text-xl font-semibold mb-6 text-txt progress_header" data-name="progress_header">Progression</h2>
 
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-6 sm:mb-8 progress_overview_stats_grid" data-name="progress_overview_stats_grid">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 sm:gap-4 mb-6 sm:mb-8 progress_overview_stats_grid" data-name="progress_overview_stats_grid">
         <StatCard label={`km/sem. (${stats.label})`} value={stats.c.kmWeek} unit="km" trend={stats.hasPrev ? stats.kmTrend : undefined} trendLabel="vs préc." name="progress_stat_km_week" />
+        <StatCard label={`D+/sem. (${stats.label})`} value={stats.c.elevWeek > 0 ? stats.c.elevWeek : '—'} unit={stats.c.elevWeek > 0 ? 'm' : ''} trend={stats.hasPrev && stats.p.elevWeek > 0 ? Math.round(((stats.c.elevWeek - stats.p.elevWeek) / stats.p.elevWeek) * 100) : undefined} trendLabel="vs préc." name="progress_stat_elev_week" />
         <StatCard label={`Allure moy. (${stats.label})`} value={stats.c.paceStr} unit="/km" trend={stats.hasPrev ? stats.paceTrend : undefined} trendLabel="vs préc." name="progress_stat_pace" />
         <StatCard label="Sorties/semaine" value={stats.c.runsWeek} name="progress_stat_runs_week" />
         <StatCard label={`Total (${stats.label})`} value={stats.c.km} unit="km" name="progress_stat_total" />
-        <StatCard label={`Sorties (${stats.label})`} value={stats.c.runs} name="progress_stat_total_runs" />
+        <StatCard label={`D+ total (${stats.label})`} value={stats.c.totalElev > 0 ? stats.c.totalElev : '—'} unit={stats.c.totalElev > 0 ? 'm' : ''} name="progress_stat_elev_total" />
         <StatCard label={`Plus longue (${stats.label})`} value={stats.c.long} unit="km" name="progress_stat_long" />
       </div>
 
@@ -219,7 +245,7 @@ export default function Progress() {
       {stats.hasPrev && (
       <div className="card mb-6 sm:mb-8 progress_comparison_card" data-name="progress_comparison_card">
         <h3 className="text-sm font-medium text-txt-secondary mb-4 progress_comparison_title" data-name="progress_comparison_title">Comparaison {stats.label} vs période précédente</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 progress_comparison_grid" data-name="progress_comparison_grid">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 progress_comparison_grid" data-name="progress_comparison_grid">
           <div className="progress_comparison_volume" data-name="progress_comparison_volume">
             <div className="text-xs text-txt-muted progress_comparison_volume_volume_meta" data-name="progress_comparison_volume_volume_meta">Volume</div>
             <div className="text-lg font-mono font-semibold text-txt progress_comparison_volume_recent_km_value" data-name="progress_comparison_volume_recent_km_value">{stats.c.km} <span className="text-sm text-txt-secondary progress_comparison_volume_recent_km_value_km_text" data-name="progress_comparison_volume_recent_km_value_km_text">km</span></div>
@@ -249,6 +275,15 @@ export default function Progress() {
             <div className="text-xs text-txt-muted progress_comparison_long_plus_longue_sortie_meta" data-name="progress_comparison_long_plus_longue_sortie_meta">Plus longue sortie</div>
             <div className="text-lg font-mono font-semibold text-txt progress_comparison_long_recent_long_value" data-name="progress_comparison_long_recent_long_value">{stats.c.long} <span className="text-sm text-txt-secondary progress_comparison_long_recent_long_value_km_text" data-name="progress_comparison_long_recent_long_value_km_text">km</span></div>
             <div className="text-xs text-txt-muted progress_comparison_long_vs_prev_long_km_meta" data-name="progress_comparison_long_vs_prev_long_km_meta">vs {stats.p.long} km</div>
+          </div>
+          <div className="progress_comparison_elev" data-name="progress_comparison_elev">
+            <div className="text-xs text-txt-muted progress_comparison_elev_meta" data-name="progress_comparison_elev_meta">D+ total</div>
+            <div className="text-lg font-mono font-semibold text-emerald-600 progress_comparison_elev_value" data-name="progress_comparison_elev_value">{stats.c.totalElev > 0 ? stats.c.totalElev : '—'} {stats.c.totalElev > 0 && <span className="text-sm text-txt-secondary">m</span>}</div>
+            <div className="text-xs text-txt-muted progress_comparison_elev_prev_meta" data-name="progress_comparison_elev_prev_meta">vs {stats.p.totalElev > 0 ? `${stats.p.totalElev} m` : '—'}</div>
+            {stats.c.totalElev > 0 && stats.p.totalElev > 0 && (() => {
+              const t = Math.round(((stats.c.totalElev - stats.p.totalElev) / stats.p.totalElev) * 100)
+              return t !== 0 ? <div className={`text-xs font-medium mt-0.5 ${t > 0 ? 'text-emerald-600' : 'text-red-500'}`}>{t > 0 ? '+' : ''}{t}%</div> : null
+            })()}
           </div>
         </div>
       </div>
@@ -362,6 +397,61 @@ export default function Progress() {
                   connectNulls
                 />
                 <Line type="monotone" dataKey="avgKm" stroke="#7c3aed" strokeWidth={2.5} dot={false} name="Moy. mobile" connectNulls />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )}
+        {/* D+ Evolution */}
+        {elevEvolution.length > 0 && (
+          <ChartCard title="Evolution du dénivelé" subtitle="D+ par sortie + moyenne mobile 10 runs" name="progress_elev_evolution_chart">
+            <PointGraphControls graph={elevPointGraph} className="mb-2" />
+            <ResponsiveContainer width="100%" height={300}>
+              <ComposedChart data={elevPointGraph.visibleData}>
+                <defs>
+                  <linearGradient id="gradElevEvo" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid {...gridStyle} />
+                <XAxis dataKey="date" tick={{ ...axisStyle, fontSize: 9 }} tickFormatter={dateTick} />
+                <YAxis tick={axisStyle} unit=" m" />
+                <Tooltip content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  const d = payload[0]?.payload
+                  return (
+                    <div className="bg-white border border-surface-border rounded-xl px-4 py-3 shadow-lg">
+                      <div className="text-xs text-txt-secondary font-medium">{d?.date}</div>
+                      <div className="text-sm text-txt font-medium">{d?.name}</div>
+                      <div className="text-sm font-mono text-emerald-600">↑ {d?.elev} m — {d?.km} km</div>
+                      <div className="text-xs text-txt-muted">Moy. 10 runs: {d?.avgElev} m</div>
+                    </div>
+                  )
+                }} />
+                {elevPointGraph.selectedVisible && (
+                  <>
+                    <ReferenceLine x={elevPointGraph.selected.date} stroke="#f59e0b" strokeDasharray="5 4" />
+                    <ReferenceLine y={elevPointGraph.selected.elev} stroke="#f59e0b" strokeDasharray="5 4" />
+                  </>
+                )}
+                <Area
+                  type="monotone"
+                  dataKey="elev"
+                  stroke="#10b981"
+                  strokeWidth={1}
+                  fill="url(#gradElevEvo)"
+                  dot={pointDot({
+                    selectedId: elevPointGraph.selectedId,
+                    betterIds: elevPointGraph.betterIds,
+                    onSelect: elevPointGraph.selectPoint,
+                    color: '#10b981',
+                    radius: 2,
+                  })}
+                  activeDot={false}
+                  name="D+"
+                  connectNulls
+                />
+                <Line type="monotone" dataKey="avgElev" stroke="#059669" strokeWidth={2.5} dot={false} name="Moy. mobile" connectNulls />
               </ComposedChart>
             </ResponsiveContainer>
           </ChartCard>
