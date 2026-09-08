@@ -121,6 +121,7 @@ function RunsList() {
               <th className="px-3 py-2 text-right font-medium volume_runs_table_header_allure_cell" data-name="volume_runs_table_header_allure_cell">Allure</th>
               <th className="px-3 py-2 text-right font-medium volume_runs_table_header_fc_moy_cell" data-name="volume_runs_table_header_fc_moy_cell">FC moy</th>
               <th className="px-3 py-2 text-right font-medium volume_runs_table_header_d_cell" data-name="volume_runs_table_header_d_cell">D+</th>
+              <th className="px-3 py-2 text-right font-medium volume_runs_table_header_d_neg_cell" data-name="volume_runs_table_header_d_neg_cell">D−</th>
             </tr>
           </thead>
           <tbody>
@@ -133,6 +134,7 @@ function RunsList() {
                 : '—'
               const hr = run.average_heartrate ? Math.round(run.average_heartrate) : '—'
               const elev = run.total_elevation_gain != null ? Math.round(run.total_elevation_gain) : '—'
+              const elevLoss = run.elevation_loss > 0 ? Math.round(run.elevation_loss) : '—'
               return (
                 <tr
                   key={run.id}
@@ -147,12 +149,13 @@ function RunsList() {
                   <td className="px-3 py-1.5 text-right tabular-nums text-txt-secondary volume_runs_table_row_pace_cell" data-name="volume_runs_table_row_pace_cell">{pace}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums text-txt-secondary volume_runs_table_row_bpm_hr_cell" data-name="volume_runs_table_row_bpm_hr_cell">{hr !== '—' ? `${hr} bpm` : '—'}</td>
                   <td className="px-3 py-1.5 text-right tabular-nums text-txt-secondary volume_runs_table_row_m_elev_cell" data-name="volume_runs_table_row_m_elev_cell">{elev !== '—' ? `${elev} m` : '—'}</td>
+                  <td className="px-3 py-1.5 text-right tabular-nums text-txt-secondary volume_runs_table_row_m_elev_loss_cell" data-name="volume_runs_table_row_m_elev_loss_cell">{elevLoss !== '—' ? `${elevLoss} m` : '—'}</td>
                 </tr>
               )
             })}
             {pageRuns.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-txt-secondary volume_runs_table_aucune_course_trouvee_cell" data-name="volume_runs_table_aucune_course_trouvee_cell">Aucune course trouvée</td>
+                <td colSpan={8} className="px-3 py-6 text-center text-txt-secondary volume_runs_table_aucune_course_trouvee_cell" data-name="volume_runs_table_aucune_course_trouvee_cell">Aucune course trouvée</td>
               </tr>
             )}
           </tbody>
@@ -170,6 +173,7 @@ function RunsList() {
             : '—'
           const hr = run.average_heartrate ? Math.round(run.average_heartrate) : null
           const elev = run.total_elevation_gain != null ? Math.round(run.total_elevation_gain) : null
+          const elevLoss = run.elevation_loss > 0 ? Math.round(run.elevation_loss) : null
           return (
             <div
               key={run.id}
@@ -186,7 +190,8 @@ function RunsList() {
                 <span>{time}</span>
                 <span>{pace} /km</span>
                 {hr && <span>{hr} bpm</span>}
-                {elev != null && <span>D+ {elev} m</span>}
+                {elev != null && <span>↑{elev} m</span>}
+                {elevLoss != null && <span>↓{elevLoss} m</span>}
               </div>
             </div>
           )

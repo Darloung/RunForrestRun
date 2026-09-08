@@ -457,6 +457,10 @@ export function buildRunExtraStats(a, { maxSpeed } = {}) {
   if (a.average_cadence > 0) stats.push({ label: 'Cadence', value: Math.round(a.average_cadence * 2), unit: 'pas/min' })
   if (a.calories > 0) stats.push({ label: 'Calories', value: Math.round(a.calories), unit: 'kcal' })
   if (a.elev_high || a.elev_low) stats.push({ label: 'Altitude', value: `${Math.round(a.elev_low || 0)}–${Math.round(a.elev_high || 0)}`, unit: 'm' })
+  if (a.elevation_loss > 0) stats.push({ label: 'D−', value: Math.round(a.elevation_loss), unit: 'm' })
+  if (a.avg_grade_adjusted_speed > 0 && a.total_elevation_gain > 15) {
+    stats.push({ label: 'Allure ajustée', value: fmtPaceFromSpeed(a.avg_grade_adjusted_speed), unit: '/km' })
+  }
   if (a.average_temp != null) stats.push({ label: 'Temp. moy.', value: Math.round(a.average_temp), unit: '°C' })
   return stats
 }
@@ -595,12 +599,13 @@ export function computeCockpit(activities, externalPRs = null) {
   const d7 = new Date(now - 7 * 86400000)
   const d365 = new Date(now - 365 * 86400000)
 
-  let weekVol = 0, vol7 = 0, vol90 = 0, vol365 = 0, vol28 = 0, prev90 = 0
+  let weekVol = 0, vol7 = 0, vol90 = 0, vol365 = 0, vol28 = 0, prev90 = 0, weekElev = 0, elev7 = 0
   activities.forEach(a => {
     const dt = parseDate(a.start_date_local)
     const dist = a.distance || 0
-    if (dt >= weekStart) weekVol += dist
-    if (dt >= d7) vol7 += dist
+    const elev = a.total_elevation_gain || 0
+    if (dt >= weekStart) { weekVol += dist; weekElev += elev }
+    if (dt >= d7) { vol7 += dist; elev7 += elev }
     if (dt >= d90) vol90 += dist
     if (dt >= d365) vol365 += dist
     if (dt >= d28) vol28 += dist
@@ -645,6 +650,8 @@ export function computeCockpit(activities, externalPRs = null) {
     volume_90d: Math.round(vol90 / 10) / 100,
     volume_365d: Math.round(vol365 / 10) / 100,
     avg_4_weeks: Math.round(avg4w / 10) / 100,
+    week_elev: Math.round(weekElev),
+    elev_7d: Math.round(elev7),
     pr_90d: pr90d,
     projections,
     alerts,

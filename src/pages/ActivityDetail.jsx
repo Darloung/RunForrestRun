@@ -97,6 +97,7 @@ export default function ActivityDetail() {
           { label: 'Allure moy.', value: fmtPace(activity.average_speed), unit: '/km' },
           { label: 'FC moy.', value: activity.average_heartrate || '-', unit: activity.average_heartrate ? 'bpm' : '' },
           { label: 'D+', value: Math.round(activity.total_elevation_gain), unit: 'm' },
+          ...(activity.elevation_loss > 0 ? [{ label: 'D−', value: Math.round(activity.elevation_loss), unit: 'm' }] : []),
           // Stats secondaires (colonnes DB historiquement non affichées).
           // speedMax (pic de la courbe lissée) remplace le max_speed Garmin
           // dès que les streams sont chargés.

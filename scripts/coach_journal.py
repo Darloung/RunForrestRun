@@ -422,6 +422,14 @@ def rolling_run_volume(runs, today, days=7):
     )
 
 
+def rolling_elevation_gain(runs, today, days=7):
+    return sum(
+        run["elev_gain"]
+        for run in runs
+        if 0 <= (today - run["dt"].date()).days < days
+    )
+
+
 def render_guidance_session(guidance):
     title = guidance.get("title") or "Seance coach"
     session = guidance.get("session") or {}
@@ -817,6 +825,8 @@ def analyse_run(a, laps_by_act, streams_by_act=None):
         "name": a.get("name"),
         "laps": planner_laps(laps),
         "metrics": run_metrics(a),
+        "elev_gain": fnum(a.get("total_elevation_gain")) or 0,
+        "elev_loss": fnum(a.get("elevation_loss")) or 0,
     }
 
 
@@ -901,6 +911,7 @@ def main():
 
     # volume 7 jours glissants (aujourd'hui + les 6 dates precedentes)
     vol = rolling_run_volume(last_runs, today)
+    elev_7j = rolling_elevation_gain(last_runs, today)
 
     planner_runs = [planner_run_payload(r) for r in last_runs]
     guidance = build_three_day_training_guidance(today.isoformat(), planner_runs, None)
@@ -944,9 +955,13 @@ def main():
     jours = ["lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi", "dimanche"]
     for r in last_runs:
         j = jours[r["dt"].weekday()]
+        elev_parts = []
+        if r["elev_gain"]: elev_parts.append(f"D+ {int(r['elev_gain'])} m")
+        if r["elev_loss"]: elev_parts.append(f"D- {int(r['elev_loss'])} m")
+        elev_str = f" - {' / '.join(elev_parts)}" if elev_parts else ""
         line = (f"- **{j} {r['dt'].strftime('%d/%m')}** - {r['kind']} - "
                 f"{r['dist']:.2f} km en {r['mt']//60}:{r['mt']%60:02d} "
-                f"({fmt_pace(r['pace'])}) - FCmoy {r['hr']} / FCmax {r['mhr']} - {r['name']}")
+                f"({fmt_pace(r['pace'])}) - FCmoy {r['hr']} / FCmax {r['mhr']}{elev_str} - {r['name']}")
         L.append(line)
         if r["fast"]:
             frac = "; ".join(f"{int(round(d/100)*100)}m a {fmt_pace(p)} (FCmax {h})" for d, p, h in r["fast"])
@@ -1026,6 +1041,7 @@ def main():
                 "fc_max_reference": profile["fc_max_reference"],
             },
             "volume_7j_km": round(vol, 1),
+            "denivele_7j_m": int(elev_7j),
             "semaine_courante": {
                 "numero": current_week.get("index"),
                 "debut": current_week.get("start"),
@@ -1050,6 +1066,8 @@ def main():
                     "allure": fmt_pace(r["pace"]),
                     "fc_moy": _toint(r["hr"]),
                     "fc_max": _toint(r["mhr"]),
+                    "denivele_positif_m": int(r["elev_gain"]) if r["elev_gain"] else None,
+                    "denivele_negatif_m": int(r["elev_loss"]) if r["elev_loss"] else None,
                     "fractions": [
                         {"distance_m": int(round(d / 100) * 100), "allure": fmt_pace(p),
                          "fc_max": _toint(h), "source": r["fast_source"]}

@@ -183,10 +183,14 @@ export default function RunModal() {
               </div>
             </div>
             <div className="bg-surface-muted rounded-xl p-3 run_modal_stat_card" data-name="run_modal_stat_card">
-              <div className="text-[10px] text-txt-muted uppercase run_modal_stat_label" data-name="run_modal_stat_label">D+</div>
-              <div className="text-lg font-mono font-semibold text-txt mt-0.5 run_modal_stat_value" data-name="run_modal_stat_value">
-                {activity.total_elevation_gain ? `${Math.round(activity.total_elevation_gain)}` : '-'}
-                {activity.total_elevation_gain > 0 && <span className="text-xs text-txt-secondary run_modal_stat_value_m_text" data-name="run_modal_stat_value_m_text"> m</span>}
+              <div className="text-[10px] text-txt-muted uppercase run_modal_stat_label" data-name="run_modal_stat_label">Dénivelé</div>
+              <div className="text-sm font-mono font-semibold text-txt mt-0.5 run_modal_stat_value" data-name="run_modal_stat_value">
+                <span className="text-emerald-500">↑</span>
+                {activity.total_elevation_gain ? Math.round(activity.total_elevation_gain) : '0'}
+                <span className="text-xs text-txt-secondary"> m</span>
+                {activity.elevation_loss > 0 && (
+                  <> <span className="text-orange-400">↓</span>{Math.round(activity.elevation_loss)}<span className="text-xs text-txt-secondary"> m</span></>
+                )}
               </div>
             </div>
           </div>

@@ -421,6 +421,7 @@ export default function Cockpit() {
       {data && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4 mb-4 sm:mb-6 cockpit_hero_stats" data-name="cockpit_hero_stats">
           <StatCard label="Semaine en cours" value={data.week_volume} unit="km" />
+          <StatCard label="D+ semaine" value={data.week_elev > 0 ? data.week_elev : '—'} unit={data.week_elev > 0 ? "m" : ""} />
           <StatCard label="7 jours" value={data.volume_7d} unit="km" />
           <StatCard label="90 jours" value={data.volume_90d} unit="km" />
           <StatCard label="365 jours" value={data.volume_365d} unit="km" />

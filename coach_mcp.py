@@ -264,46 +264,89 @@ def _plan_write_deps():
 
 
 @mcp.tool
-def donnees_sommeil(jours: int = 7) -> dict[str, Any]:
-    """Return recent sleep scores from Garmin to inform session adaptation.
+def donnees_recuperation(jours: int = 7) -> dict[str, Any]:
+    """Return full Garmin recovery snapshot: sleep, HRV, resting HR and body battery.
 
-    Retourne le score de sommeil, la qualite et la duree pour les N derniers
-    jours disponibles. Utilise ces donnees pour alleger la seance du jour si
-    le sommeil est mauvais (score < 60 ou qualite POOR/FAIR) ou valider le
-    plan si le sommeil est bon (score >= 75, qualite GOOD/EXCELLENT).
+    Combine sommeil (score/qualite/duree), VFC nuit (HRV last night avg ms,
+    statut BALANCED/LOW/UNBALANCED, baseline), FC repos et delta body battery
+    pour les N derniers jours. Utilise ces donnees pour ajuster la seance du
+    jour : une VFC basse + mauvais sommeil = signal de surcharge.
     """
     from datetime import timedelta
 
     db, _ = _plan_write_deps()
+    import db as _db_mod
+
     today = date.today()
-    results = []
+
+    # --- Sommeil ---
+    sommeil = []
     for i in range(jours):
         day = today - timedelta(days=i)
         row = db.get_latest_sleep_score(str(day))
         if row:
-            duration_h = None
-            if row.get("sleep_duration_seconds"):
-                duration_h = round(row["sleep_duration_seconds"] / 3600, 1)
-            results.append({
+            duration_h = round(row["sleep_duration_seconds"] / 3600, 1) if row.get("sleep_duration_seconds") else None
+            sommeil.append({
                 "date": row["date"],
                 "score": row.get("sleep_score"),
                 "qualite": row.get("sleep_quality"),
                 "duree_heures": duration_h,
             })
-    avg_score = None
-    if results:
-        scores = [r["score"] for r in results if r["score"] is not None]
-        avg_score = round(sum(scores) / len(scores), 1) if scores else None
+
+    # --- HRV, FC repos, body battery (depuis les activites recentes) ---
+    try:
+        conn = _db_mod._safe_conn()
+        cur = conn.cursor()
+        since = (today - timedelta(days=jours)).isoformat()
+        cur.execute("""
+            SELECT
+                start_date_local::date AS jour,
+                health_hrv_last_night_avg_ms,
+                health_hrv_weekly_avg_ms,
+                health_hrv_status,
+                health_hrv_baseline_low_ms,
+                health_hrv_baseline_high_ms,
+                health_resting_hr_bpm,
+                health_resting_hr_7d_avg_bpm,
+                body_battery_delta
+            FROM activities
+            WHERE type = 'Run'
+              AND start_date_local >= %s
+              AND (health_hrv_last_night_avg_ms IS NOT NULL
+                   OR health_resting_hr_bpm IS NOT NULL
+                   OR body_battery_delta IS NOT NULL)
+            ORDER BY start_date_local DESC
+            LIMIT %s
+        """, [since, jours])
+        cols = [d[0] for d in cur.description]
+        sante = [dict(zip(cols, row)) for row in cur.fetchall()]
+        for r in sante:
+            if r.get("jour"):
+                r["jour"] = str(r["jour"])[:10]
+    except Exception:
+        sante = []
+
+    # --- Scores moyens ---
+    scores = [r["score"] for r in sommeil if r.get("score") is not None]
+    hrv_values = [r["health_hrv_last_night_avg_ms"] for r in sante if r.get("health_hrv_last_night_avg_ms")]
+    avg_sleep = round(sum(scores) / len(scores), 1) if scores else None
+    avg_hrv = round(sum(hrv_values) / len(hrv_values), 1) if hrv_values else None
+
     return {
-        "jours_demandes": jours,
-        "jours_disponibles": len(results),
-        "score_moyen": avg_score,
-        "sommeil": results,
+        "periode_jours": jours,
+        "score_sommeil_moyen": avg_sleep,
+        "hrv_moyen_ms": avg_hrv,
+        "sommeil": sommeil,
+        "sante_runs": sante,
         "consigne_coach": (
-            "Score >= 75 et qualite GOOD/EXCELLENT → tenir le plan. "
-            "Score 60-74 ou qualite FAIR → option d'alleger la seance (reduire volume ou intensite). "
-            "Score < 60 ou qualite POOR → recommander d'alleger ou reporter la seance de qualite. "
-            "Absence de donnees = Garmin n'a pas capte le sommeil ce jour-la, ignorer."
+            "SOMMEIL — Score >= 75 / GOOD : tenir le plan. "
+            "60-74 / FAIR : option alleger (-20% volume ou intensite). "
+            "< 60 / POOR ou 2 nuits consecutives mauvaises : footing facile ou repos. "
+            "HRV — Statut BALANCED : recuperation correcte. "
+            "LOW ou UNBALANCED : signal de fatigue, alleger la seance de qualite. "
+            "HRV nuit < baseline_low : meme recommandation que POOR sommeil. "
+            "BODY BATTERY delta negatif important (< -20) apres un run = effort couteux, "
+            "tenir compte pour la seance suivante."
         ),
     }
 
