@@ -1768,16 +1768,22 @@ def check_and_populate(token_dir: str = "") -> dict[str, Any]:
         result["skipped"] = f"db_error:{type(exc).__name__}"
         return result
 
+    lookback_days = int(os.environ.get("GARMIN_LOOKBACK_DAYS", "365"))
+    full_lookback = datetime.now() - timedelta(days=lookback_days)
+
     if latest_date:
         try:
             latest_dt = datetime.fromisoformat(
                 str(latest_date).replace("Z", "").replace(" ", "T")
             )
-            after_dt = (latest_dt - timedelta(days=7)).replace(tzinfo=None)
+            # Remonte 7 jours avant le dernier run connu pour capter les uploads
+            # tardifs, mais jamais moins loin que la fenetre historique complete.
+            incremental = (latest_dt - timedelta(days=7)).replace(tzinfo=None)
+            after_dt = min(incremental, full_lookback)
         except Exception:
-            after_dt = datetime.now() - timedelta(days=30)
+            after_dt = full_lookback
     else:
-        after_dt = datetime.now() - timedelta(days=90)
+        after_dt = full_lookback
 
     result["checked"] = True
     result["after_iso"] = after_dt.isoformat()
