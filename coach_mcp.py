@@ -264,6 +264,51 @@ def _plan_write_deps():
 
 
 @mcp.tool
+def donnees_sommeil(jours: int = 7) -> dict[str, Any]:
+    """Return recent sleep scores from Garmin to inform session adaptation.
+
+    Retourne le score de sommeil, la qualite et la duree pour les N derniers
+    jours disponibles. Utilise ces donnees pour alleger la seance du jour si
+    le sommeil est mauvais (score < 60 ou qualite POOR/FAIR) ou valider le
+    plan si le sommeil est bon (score >= 75, qualite GOOD/EXCELLENT).
+    """
+    from datetime import timedelta
+
+    db, _ = _plan_write_deps()
+    today = date.today()
+    results = []
+    for i in range(jours):
+        day = today - timedelta(days=i)
+        row = db.get_latest_sleep_score(str(day))
+        if row:
+            duration_h = None
+            if row.get("sleep_duration_seconds"):
+                duration_h = round(row["sleep_duration_seconds"] / 3600, 1)
+            results.append({
+                "date": row["date"],
+                "score": row.get("sleep_score"),
+                "qualite": row.get("sleep_quality"),
+                "duree_heures": duration_h,
+            })
+    avg_score = None
+    if results:
+        scores = [r["score"] for r in results if r["score"] is not None]
+        avg_score = round(sum(scores) / len(scores), 1) if scores else None
+    return {
+        "jours_demandes": jours,
+        "jours_disponibles": len(results),
+        "score_moyen": avg_score,
+        "sommeil": results,
+        "consigne_coach": (
+            "Score >= 75 et qualite GOOD/EXCELLENT → tenir le plan. "
+            "Score 60-74 ou qualite FAIR → option d'alleger la seance (reduire volume ou intensite). "
+            "Score < 60 ou qualite POOR → recommander d'alleger ou reporter la seance de qualite. "
+            "Absence de donnees = Garmin n'a pas capte le sommeil ce jour-la, ignorer."
+        ),
+    }
+
+
+@mcp.tool
 def ajustements_du_plan() -> dict[str, Any]:
     """Return the coach adjustments currently overriding the hard-coded plan."""
     db, _ = _plan_write_deps()
