@@ -1771,17 +1771,26 @@ def check_and_populate(token_dir: str = "") -> dict[str, Any]:
     lookback_days = int(os.environ.get("GARMIN_LOOKBACK_DAYS", "365"))
     full_lookback = datetime.now() - timedelta(days=lookback_days)
 
-    if latest_date:
+    # Backfill complet tant que le plus vieux run en base est plus recent que
+    # la fenetre historique cible (moins 5 jours de marge). Une fois la base
+    # couvrant au moins `lookback_days`, on passe en mode incremental (7 jours
+    # avant le dernier run) pour ne pas surcharger l'API Garmin a chaque ouverture.
+    try:
+        oldest_date = db.get_oldest_activity_date()
+        backfill_done = oldest_date is not None and datetime.fromisoformat(
+            str(oldest_date).replace("Z", "").replace(" ", "T")
+        ).replace(tzinfo=None) <= full_lookback + timedelta(days=5)
+    except Exception:
+        backfill_done = False
+
+    if latest_date and backfill_done:
         try:
             latest_dt = datetime.fromisoformat(
                 str(latest_date).replace("Z", "").replace(" ", "T")
             )
-            # Remonte 7 jours avant le dernier run connu pour capter les uploads
-            # tardifs, mais jamais moins loin que la fenetre historique complete.
-            incremental = (latest_dt - timedelta(days=7)).replace(tzinfo=None)
-            after_dt = min(incremental, full_lookback)
+            after_dt = (latest_dt - timedelta(days=7)).replace(tzinfo=None)
         except Exception:
-            after_dt = full_lookback
+            after_dt = datetime.now() - timedelta(days=30)
     else:
         after_dt = full_lookback
 
