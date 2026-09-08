@@ -512,14 +512,19 @@ def _week_sessions(week_num: int, phase: str, shape: dict[str, Any]) -> dict[int
                 tag="recovery",
             )
 
+    training_days = PROFILE.training_weekdays
+
     if eve_wd not in sessions:
         # La veille de la sortie longue est le premier jour qu'une semaine legere
         # rend : c'est celui dont l'absence ne coute aucune adaptation.
-        sessions[eve_wd] = _rest() if light else _easy_plan(
-            "Footing court",
-            f"{_scaled((30, 40), position, factor)}' a {EASY_PACE} "
-            "(allegement avant la sortie longue)",
-        )
+        if training_days is not None and eve_wd not in training_days:
+            sessions[eve_wd] = _rest()
+        else:
+            sessions[eve_wd] = _rest() if light else _easy_plan(
+                "Footing court",
+                f"{_scaled((30, 40), position, factor)}' a {EASY_PACE} "
+                "(allegement avant la sortie longue)",
+            )
 
     # Les jours restants portent le volume : un footing avec lignes, puis de
     # l'endurance moyenne.
@@ -545,10 +550,13 @@ def _week_sessions(week_num: int, phase: str, shape: dict[str, Any]) -> dict[int
     for weekday in range(7):
         if weekday in sessions:
             continue
-        sessions[weekday] = fillers.pop(0) if fillers else _easy_plan(
-            "Footing facile",
-            f"{_scaled(EASY_MINUTES_RANGE, position, factor)}' a {EASY_PACE}",
-        )
+        if training_days is not None and weekday not in training_days:
+            sessions[weekday] = _rest()
+        else:
+            sessions[weekday] = fillers.pop(0) if fillers else _easy_plan(
+                "Footing facile",
+                f"{_scaled(EASY_MINUTES_RANGE, position, factor)}' a {EASY_PACE}",
+            )
     return sessions
 
 

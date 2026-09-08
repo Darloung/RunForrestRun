@@ -43,6 +43,8 @@
   "longRunWeekday": 6,
   "qualityWeekday": 1,
   "restWeekday": 3,
+  "_comment_training_days": "Seuls ces jours recoivent une seance ; les autres sont automatiquement repos. Omets cette cle pour un plan 7j/semaine classique.",
+  "trainingWeekdays": [0, 1, 6],
 
   "_comment_volume": [
     "Bornes de la sortie longue, en km, calibrees pour un trail 22 km.",

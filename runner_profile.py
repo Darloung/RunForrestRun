@@ -257,6 +257,28 @@ def _weekday(value: Any, default: int) -> int:
     return number % 7
 
 
+def _parse_training_weekdays(value: Any) -> frozenset[int] | None:
+    """Parse une liste de jours d'entrainement (0=lundi…6=dimanche).
+
+    Accepte une liste JSON [0,1,6], une chaine "0,1,6" ou None/vide.
+    Retourne None si non renseigne (comportement 7j/semaine inchange).
+    """
+    if value is None or value == "":
+        return None
+    if isinstance(value, (list, tuple)):
+        ints = [_coerce_int(v) for v in value]
+        days = {v % 7 for v in ints if v is not None}
+        return frozenset(days) if days else None
+    if isinstance(value, str):
+        days = set()
+        for part in value.split(","):
+            v = _coerce_int(part.strip())
+            if v is not None:
+                days.add(v % 7)
+        return frozenset(days) if days else None
+    return None
+
+
 @dataclass(frozen=True)
 class RunnerProfile:
     """Tout ce qui depend de la personne, resolu une fois pour toutes."""
@@ -274,6 +296,7 @@ class RunnerProfile:
     long_run_weekday: int
     quality_weekday: int
     rest_weekday: int
+    training_weekdays: frozenset[int] | None
     long_start_km: int
     long_peak_km: int
     long_am_start_km: int
@@ -481,6 +504,9 @@ def load_profile() -> RunnerProfile:
         quality_weekday=_weekday(pick("PLAN_QUALITY_WEEKDAY", "qualityWeekday"),
                                  DEFAULT_QUALITY_WEEKDAY),
         rest_weekday=_weekday(pick("PLAN_REST_WEEKDAY", "restWeekday"), DEFAULT_REST_WEEKDAY),
+        training_weekdays=_parse_training_weekdays(
+            pick("PLAN_TRAINING_WEEKDAYS", "trainingWeekdays")
+        ),
         long_start_km=_coerce_int(pick("PLAN_LONG_START_KM", "longStartKm"))
         or DEFAULT_LONG_START_KM,
         long_peak_km=_coerce_int(pick("PLAN_LONG_PEAK_KM", "longPeakKm")) or DEFAULT_LONG_PEAK_KM,
