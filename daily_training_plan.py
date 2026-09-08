@@ -344,21 +344,20 @@ def _volume_factor(week_num: int, phase: str, shape: dict[str, Any]) -> float:
 
 
 def _quality_for_week(week_num: int, phase: str, shape: dict[str, Any]) -> dict[str, Any]:
-    """Seance dure de la semaine. Le type suit la phase, jamais le hasard."""
+    """Seance dure de la semaine, orientee trail. Le type suit la phase."""
     if phase == "race_week":
         return _quality_plan(
-            "Rappel allure objectif",
-            f"30' facile dont 3 x 1 km a {GOAL_PACE_TIGHT}, recup 2' facile",
-            tag="marathon-pace",
+            "Rappel allure trail",
+            f"2 x 10' a {THRESHOLD_PACE} sur terrain varie, recup 3' marche",
+            tag="threshold",
         )
     if phase == "taper":
         return _quality_plan(
-            "Allure objectif controlee",
-            f"3 x 2 km a {GOAL_PACE_TIGHT}, recup 1' trot",
-            tag="marathon-pace",
+            "Fartlek court",
+            f"30' avec 6 x 2' a {THRESHOLD_PACE}, retour facile entre chaque",
+            tag="threshold",
         )
     if phase == "peak":
-        # Le semi test est la seance dure de la semaine : le mardi reste leger.
         return _quality_plan(
             "Seuil leger",
             f"3 x 6' a {THRESHOLD_PACE}, recup 2' trot (veille de test allegee)",
@@ -366,46 +365,46 @@ def _quality_for_week(week_num: int, phase: str, shape: dict[str, Any]) -> dict[
         )
     if week_num in shape["deloads"]:
         return _quality_plan(
-            "Rappel allure objectif leger",
-            f"3 x 2 km a {GOAL_PACE_TIGHT}, recup 2' trot, sans accelerer",
-            tag="marathon-pace",
+            "Fartlek decharge",
+            f"35' avec 5 x 1' relance a {STEADY_PACE}, le reste facile",
+            tag="threshold",
         )
     if phase == "base":
-        # Alternance vitesse / seuil : la base installe la cylindree avant que le
-        # specifique ne monopolise les seances dures.
+        # Alternance cotes / seuil : la base construit la force specifique trail
+        # avant que le specifique ne monte le seuil.
         if week_num % 2 == 1:
-            reps = 5 + week_num // 2
+            reps = 6 + week_num // 2
             return _quality_plan(
-                f"{reps} x 400 m VO2",
-                f"{reps} x 400 m a {VO2_PACE}, recup 1'30 trot",
+                f"Cotes courtes ({reps} x 30'')",
+                f"{reps} x 30'' en montee a effort soutenu, recup descente trot",
                 tag="vo2",
             )
         return _quality_plan(
             "Seuil 3 x 8'",
-            f"3 x 8' a {THRESHOLD_PACE}, recup 2' trot",
+            f"3 x 8' a {THRESHOLD_PACE} sur terrain plat ou sous-bois, recup 2' trot",
             tag="threshold",
         )
 
-    # Specifique : le seuil porte le bloc, avec un rappel de vitesse et un bloc
-    # a allure marathon inseres regulierement pour ne perdre ni l'un ni l'autre.
+    # Specifique trail : cotes longues, seuil progressif et fartlek terrain.
     slot = (week_num - shape["baseWeeks"] - 1) % 4
     if slot == 1:
         return _quality_plan(
-            "Bloc allure objectif",
-            f"5 x 2 km a {GOAL_PACE_TIGHT}, recup 1' trot",
-            tag="marathon-pace",
+            "Cotes longues",
+            f"6 x 1'30 en montee a {THRESHOLD_PACE} effort, recup descente trot",
+            tag="vo2",
         )
     if slot == 3:
         return _quality_plan(
-            "Rappel vitesse",
-            f"6 x 400 m a {VO2_PACE} + 4 x 200 m relaches, recup complete",
-            tag="vo2",
+            "Fartlek trail",
+            f"40' de fartlek : alterner 3' effort a {THRESHOLD_PACE} / 2' facile, "
+            "sur terrain varie (sous-bois, chemin)",
+            tag="threshold",
         )
     minutes = 6 if slot == 0 else 10
     reps = 5 if slot == 0 else 3
     return _quality_plan(
         f"Seuil {reps} x {minutes}'",
-        f"{reps} x {minutes}' a {THRESHOLD_PACE}, recup 2' trot",
+        f"{reps} x {minutes}' a {THRESHOLD_PACE} sur terrain plat ou sous-bois, recup 2' trot",
         tag="threshold",
     )
 
@@ -1532,32 +1531,34 @@ def _adaptive_quality(day: date, ctx: dict[str, Any], phase: str) -> dict[str, A
     week_index = max(0, (day - PLAN_START).days // 7)
     if phase == "race_week":
         return _quality_plan(
-            "Rappel allure objectif",
-            f"30' facile dont 3 x 1 km a {GOAL_PACE_TIGHT}, recup 2' facile",
-            tag="marathon-pace",
+            "Rappel allure trail",
+            f"2 x 10' a {THRESHOLD_PACE} sur terrain varie, recup 3' marche",
+            tag="threshold",
         )
     if phase == "taper":
         return _quality_plan(
-            "Allure objectif controlee",
-            f"3 x 2 km a {GOAL_PACE_TIGHT}, recup 1' trot",
-            tag="marathon-pace",
+            "Fartlek court",
+            f"30' avec 6 x 2' a {THRESHOLD_PACE}, retour facile entre chaque",
+            tag="threshold",
         )
     if phase in {"specific", "peak"}:
         if week_index % 2 == 0:
             return _quality_plan(
-                "Bloc allure objectif",
-                f"2 x 5 km a {GOAL_PACE_TIGHT}, recup 2' trot",
-                tag="marathon-pace",
+                "Cotes longues",
+                f"6 x 1'30 en montee a {THRESHOLD_PACE} effort, recup descente trot",
+                tag="vo2",
             )
         return _quality_plan(
-            "Seuil controle", f"3 x 10' a {THRESHOLD_PACE}, recup 3' trot", tag="threshold"
+            "Seuil controle", f"3 x 10' a {THRESHOLD_PACE} sur terrain varie, recup 3' trot",
+            tag="threshold",
         )
     if week_index % 2 == 0:
         return _quality_plan(
-            "Seuil progressif", f"3 x 8' a {THRESHOLD_PACE}, recup 2' trot", tag="threshold"
+            "Seuil progressif", f"3 x 8' a {THRESHOLD_PACE} sur terrain plat ou sous-bois, recup 2' trot",
+            tag="threshold",
         )
     return _quality_plan(
-        "Rappel vitesse", f"6 x 400 m a {VO2_PACE}, recup 1'30 trot", tag="vo2"
+        "Cotes courtes", f"10 x 30'' en montee a effort soutenu, recup descente trot", tag="vo2"
     )
 
 
