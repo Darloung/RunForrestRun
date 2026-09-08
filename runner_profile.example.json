@@ -40,9 +40,9 @@
   "maxHr": null,
 
   "_comment_frame": "Jours de la semaine : 0 = lundi, 6 = dimanche.",
-  "longRunWeekday": 5,
+  "longRunWeekday": 6,
   "qualityWeekday": 1,
-  "restWeekday": 0,
+  "restWeekday": 3,
 
   "_comment_volume": [
     "Bornes de la sortie longue, en km, calibrees pour un trail 22 km.",
