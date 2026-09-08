@@ -3101,6 +3101,7 @@ def build_plan_overview(
         "planSource": PLAN_SOURCE,
         "planDescription": PLAN_DESCRIPTION,
         "planBasis": PLAN_BASIS,
+        "raceName": RACE_NAME,
         "generatedFor": today.isoformat(),
         "raceDay": RACE_DAY.isoformat(),
         "taperStart": TAPER_START.isoformat(),

@@ -303,7 +303,7 @@ export default function PlanDetails() {
   return (
     <div data-name="page_plan">
       <div className="flex items-start justify-between gap-3 mb-1 plan_header_row" data-name="plan_header_row">
-        <h2 className="page_heading plan_header" data-name="plan_header">Plan marathon — séances détaillées</h2>
+        <h2 className="page_heading plan_header" data-name="plan_header">Plan {plan.raceName || 'course'} — séances détaillées</h2>
       </div>
       <p className="text-sm text-txt-secondary mb-6 plan_subtitle" data-name="plan_subtitle">
         {plan.planDescription} · {plan.planBasis}
