@@ -370,41 +370,41 @@ def _quality_for_week(week_num: int, phase: str, shape: dict[str, Any]) -> dict[
             tag="threshold",
         )
     if phase == "base":
-        # Alternance cotes / seuil : la base construit la force specifique trail
-        # avant que le specifique ne monte le seuil.
+        # Alternance fartlek cotes / tempo continu : la base construit
+        # la force specifique trail sans fractionne piste.
         if week_num % 2 == 1:
-            reps = 6 + week_num // 2
             return _quality_plan(
-                f"Cotes courtes ({reps} x 30'')",
-                f"{reps} x 30'' en montee a effort soutenu, recup descente trot",
+                "Fartlek en cote",
+                f"30' dont les portions montantes courees fort ({THRESHOLD_PACE} effort), "
+                "plats et descentes en trot facile — pas de chrono, au ressenti",
                 tag="vo2",
             )
         return _quality_plan(
-            "Seuil 3 x 8'",
-            f"3 x 8' a {THRESHOLD_PACE} sur terrain plat ou sous-bois, recup 2' trot",
+            "Tempo 20'",
+            f"20' continus a {THRESHOLD_PACE} sur terrain plat ou sous-bois",
             tag="threshold",
         )
 
-    # Specifique trail : cotes longues, seuil progressif et fartlek terrain.
+    # Specifique trail : alternance tempo, fartlek terrain, tempo long.
     slot = (week_num - shape["baseWeeks"] - 1) % 4
     if slot == 1:
         return _quality_plan(
-            "Cotes longues",
-            f"6 x 1'30 en montee a {THRESHOLD_PACE} effort, recup descente trot",
+            "Sortie avec montees",
+            f"40' dont les 20' centrales avec effort soutenu sur les cotes "
+            f"({THRESHOLD_PACE} allure), retour facile",
             tag="vo2",
         )
     if slot == 3:
         return _quality_plan(
             "Fartlek trail",
-            f"40' de fartlek : alterner 3' effort a {THRESHOLD_PACE} / 2' facile, "
-            "sur terrain varie (sous-bois, chemin)",
+            f"40' de fartlek : effort soutenu sur les montees et portions roulantes "
+            f"({THRESHOLD_PACE}), repos actif dans les descentes — au ressenti",
             tag="threshold",
         )
-    minutes = 6 if slot == 0 else 10
-    reps = 5 if slot == 0 else 3
+    minutes = 30 if slot == 0 else 40
     return _quality_plan(
-        f"Seuil {reps} x {minutes}'",
-        f"{reps} x {minutes}' a {THRESHOLD_PACE} sur terrain plat ou sous-bois, recup 2' trot",
+        f"Tempo {minutes}'",
+        f"{minutes}' continus a {THRESHOLD_PACE} sur terrain varie (chemin, sous-bois)",
         tag="threshold",
     )
 
@@ -1544,21 +1544,27 @@ def _adaptive_quality(day: date, ctx: dict[str, Any], phase: str) -> dict[str, A
     if phase in {"specific", "peak"}:
         if week_index % 2 == 0:
             return _quality_plan(
-                "Cotes longues",
-                f"6 x 1'30 en montee a {THRESHOLD_PACE} effort, recup descente trot",
+                "Sortie avec montees",
+                f"40' dont les 20' centrales avec effort soutenu sur les cotes "
+                f"({THRESHOLD_PACE} allure), retour facile",
                 tag="vo2",
             )
         return _quality_plan(
-            "Seuil controle", f"3 x 10' a {THRESHOLD_PACE} sur terrain varie, recup 3' trot",
+            "Tempo 40'",
+            f"40' continus a {THRESHOLD_PACE} sur terrain varie, au ressenti",
             tag="threshold",
         )
     if week_index % 2 == 0:
         return _quality_plan(
-            "Seuil progressif", f"3 x 8' a {THRESHOLD_PACE} sur terrain plat ou sous-bois, recup 2' trot",
+            "Tempo 20'",
+            f"20' continus a {THRESHOLD_PACE} sur terrain plat ou sous-bois",
             tag="threshold",
         )
     return _quality_plan(
-        "Cotes courtes", f"10 x 30'' en montee a effort soutenu, recup descente trot", tag="vo2"
+        "Fartlek en cote",
+        f"30' dont les portions montantes courees fort ({THRESHOLD_PACE} effort), "
+        "plats et descentes en trot facile — au ressenti",
+        tag="vo2",
     )
 
 
