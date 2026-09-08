@@ -1,7 +1,7 @@
 # Garmin Running Dashboard
 
 Dashboard self-hosted pour visualiser et analyser des donnees de course Garmin
-Connect, avec un plan marathon **genere depuis tes propres caracteristiques**.
+Connect, avec un plan d'entrainement **genere depuis tes propres caracteristiques**.
 Le depot ne contient que du code : identifiants, activites, traces GPS, donnees
 de sante et journaux generes restent dans l'infrastructure de chaque
 utilisateur.
@@ -25,14 +25,14 @@ interroge qu'a l'ouverture, via un *freshness-check*, pour combler le delta
 - **Training Load** : CTL / ATL / TSB avec zones d'interpretation
 - **Zones FC** : repartition du temps dans les zones cardio (FC max contextuelle)
 - **VO2max & Training Status** : repris nativement depuis Garmin
-- **Plan** : bloc marathon complet genere depuis ton objectif et tes records
+- **Plan** : bloc d'entrainement complet genere depuis ton objectif et tes records (route ou trail)
 - **Detail d'un run** : carte GPS, courbes allure/FC, meilleurs efforts (streams hydrates depuis Garmin)
 
 ## Ton plan, tes allures
 
 Le plan d'entrainement n'est pas un calendrier ecrit en dur : il est **genere**
-depuis un seul nombre, ton objectif marathon. Trois facons de le renseigner, de
-la plus simple a la plus explicite.
+depuis ton objectif de course (distance et date). Trois facons de le renseigner,
+de la plus simple a la plus explicite.
 
 ### 1. Ne rien faire
 
@@ -43,9 +43,9 @@ l'objectif est **projete depuis ton meilleur record** (formule de Riegel, avec
 une marge de conversion : une projection brute suppose une endurance specifique
 deja acquise) et les huit fourchettes d'allure en decoulent.
 
-Exemple : un 10 km en 45:00 donne un calibrage marathon a 3h32, soit
-5:01/km, et avec lui un seuil a 4:39-4:49, du VO2 a 4:14-4:27 et des footings
-a 5:46-6:09.
+Exemple : un 10 km en 45:00 donne un calibrage a 3h32 equivalent marathon, soit
+5:01/km de reference, et avec lui un seuil a 4:39-4:49, du VO2 a 4:14-4:27 et
+des footings a 5:46-6:09.
 
 ### 2. Fixer ton objectif
 
@@ -55,12 +55,13 @@ sur ce qui est observe :
 
 ```json
 {
-  "raceName": "Marathon de Berlin",
-  "raceDate": "2027-09-26",
-  "planWeeks": 15,
-  "goalTime": "3:30:00",
-  "longRunWeekday": 6,
-  "longPeakKm": 32
+  "raceName": "Trail 22 km",
+  "raceDate": "2027-03-13",
+  "planStart": "2026-09-08",
+  "planWeeks": 26,
+  "taperWeeks": 2,
+  "longStartKm": 12,
+  "longPeakKm": 24
 }
 ```
 
@@ -78,13 +79,13 @@ Une periodisation complete, recalculee a chaque changement de profil :
 |---|---|
 | Reprise | Demi-semaine de mise en route, aucune intensite |
 | Base | Fonciere et premiers rappels de vitesse |
-| Specifique | Seuil, et blocs a allure marathon dans la sortie longue |
-| Rodage | Semi test — c'est ce chrono qui arrete la cible du jour J |
+| Specifique | Seuil, et blocs a allure objectif dans la sortie longue |
+| Rodage | Sortie test — c'est ce run qui valide la cible du jour J |
 | Affutage | Le volume tombe, l'allure specifique reste |
 
-Une semaine sur quatre est une **decharge**, et la semaine qui precede le semi
+Une semaine sur quatre est une **decharge**, et la semaine qui precede la sortie
 test en est toujours une. La rampe de sortie longue va de `longStartKm` a
-`longPeakKm` ; les decharges, l'affutage et la dose d'allure marathon s'en
+`longPeakKm` ; les decharges, l'affutage et la dose d'allure objectif s'en
 deduisent. Le gabarit hebdomadaire se construit autour des trois jours que tu
 choisis (repos, qualite, sortie longue) : la veille de la sortie longue
 s'allege, le lendemain recupere, et les jours restants portent le volume.
@@ -191,7 +192,7 @@ fois depuis ta machine avec `scripts/garmin_push_neon.py`.
 | `DB_CONNECT_TIMEOUT` | option | Timeout (s) de connexion a la base primaire (defaut 5). |
 | `DB_SECONDARY_COOLDOWN` | option | Fenetre (s) du disjoncteur de replication secondaire (defaut 120). |
 | `SQLITE_PATH` | dev | Active le repli SQLite local (aucune base distante requise). |
-| `RUNNER_GOAL_TIME` | option | Objectif marathon (`3:30:00`). Prime sur tout : les huit allures en decoulent. |
+| `RUNNER_GOAL_TIME` | option | Objectif chrono (`3:30:00`). Prime sur tout : les huit allures en decoulent. |
 | `RUNNER_MAX_HR` | option | Force la FC max. Vide → celle observee sur 90 jours. |
 | `RUNNER_PR_5K` / `10K` / `SEMI` / `MARATHON` | option | Records connus. Inutiles si Garmin est connecte. |
 | `PLAN_RACE_NAME` / `PLAN_RACE_DATE` | option | Identite de la course visee. |
@@ -199,7 +200,7 @@ fois depuis ta machine avec `scripts/garmin_push_neon.py`.
 | `PLAN_LONG_RUN_WEEKDAY` / `PLAN_QUALITY_WEEKDAY` / `PLAN_REST_WEEKDAY` | option | Gabarit hebdomadaire (0 = lundi). |
 | `PLAN_LONG_START_KM` / `PLAN_LONG_PEAK_KM` | option | Bornes de la rampe de sortie longue. |
 | `RUNNER_PROFILE_FILE` / `RUNNER_OBSERVED_FILE` | option | Chemins des fichiers de profil. |
-| `PLAN_RACE_NAME` | option | Nom affiche pour la course (defaut `Marathon`). |
+| `PLAN_RACE_NAME` | option | Nom affiche pour la course (ex. `Trail 22 km`). |
 | `PLAN_START_DATE` | option | Debut du plan au format `YYYY-MM-DD`. Vide : prochain jeudi. |
 | `PLAN_RACE_DATE` | option | Date de course au format `YYYY-MM-DD`. Vide : 108 jours apres le debut. |
 | `PLAN_DESCRIPTION` | option | Description personnalisee affichee dans le cockpit. |
