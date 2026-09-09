@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
-import { Activity, BarChart3, CalendarDays, Trophy, TrendingUp, LogOut, RefreshCw, Trash2, Footprints, Sun, Moon, AlertTriangle } from 'lucide-react'
+import { Activity, BarChart3, CalendarDays, Trophy, TrendingUp, LogOut, RefreshCw, Trash2, Footprints, Sun, Moon, AlertTriangle, Dumbbell } from 'lucide-react'
 import { useActivities } from '../contexts/ActivityContext'
 import { clearAllCache } from '../api'
 import DateRangeFilter from './DateRangeFilter'
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/progress', icon: TrendingUp, label: 'Progression', shortLabel: 'Progrès' },
   { to: '/performance', icon: Trophy, label: 'Records' },
   { to: '/gear', icon: Footprints, label: 'Matériel' },
+  { to: '/muscu', icon: Dumbbell, label: 'Muscu' },
 ]
 console.log('[Layout] navItems count:', navItems.length)
 

@@ -392,7 +392,11 @@ def garmin_login(
     if clean_mfa:
         prompt_mfa = lambda: clean_mfa
 
-    api = Garmin(email=email, password=password, prompt_mfa=prompt_mfa)
+    init_kwargs: dict = {"email": email, "password": password}
+    try:
+        api = Garmin(prompt_mfa=prompt_mfa, **init_kwargs)
+    except TypeError:
+        api = Garmin(**init_kwargs)
     tokenstore = str(_primary_token_dir(token_dir)) if _primary_token_dir(token_dir) else None
 
     try:

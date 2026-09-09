@@ -3019,6 +3019,87 @@ def get_sync_status() -> dict:
     }
 
 
+_CREATE_WORKOUT_SESSIONS_SQL = """CREATE TABLE IF NOT EXISTS workout_sessions (
+    id SERIAL PRIMARY KEY,
+    session_date DATE NOT NULL,
+    routine_name TEXT NOT NULL DEFAULT 'Jambe 1',
+    exercises JSONB NOT NULL,
+    notes TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE (session_date, routine_name)
+)"""
+
+
+def _ensure_workout_sessions(cur) -> None:
+    cur.execute(_CREATE_WORKOUT_SESSIONS_SQL)
+
+
+def get_workout_sessions(routine_name: str = "Jambe 1", limit: int = 20) -> list[dict]:
+    conn = _safe_conn()
+    cur = conn.cursor()
+    try:
+        _ensure_workout_sessions(cur)
+        conn.commit()
+        cur.execute("""
+            SELECT id, session_date, routine_name, exercises, notes, created_at
+            FROM workout_sessions
+            WHERE routine_name = %s
+            ORDER BY session_date DESC
+            LIMIT %s
+        """, [routine_name, limit])
+        rows = cur.fetchall()
+    except Exception as e:
+        print(f"[DB] get_workout_sessions failed: {type(e).__name__}: {e}", file=sys.stderr)
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return []
+    result = []
+    for row in rows:
+        exercises = row[3]
+        if isinstance(exercises, str):
+            try:
+                exercises = json.loads(exercises)
+            except Exception:
+                exercises = []
+        result.append({
+            "id": row[0],
+            "session_date": str(row[1])[:10] if row[1] else "",
+            "routine_name": row[2],
+            "exercises": exercises,
+            "notes": row[4] or "",
+            "created_at": str(row[5])[:19] if row[5] else "",
+        })
+    return result
+
+
+def upsert_workout_session(session_date: str, routine_name: str, exercises: list, notes: str = "") -> dict:
+    day = str(session_date)[:10]
+    exercises_json = json.dumps(exercises, ensure_ascii=False)
+    conn = _safe_conn()
+    cur = conn.cursor()
+    try:
+        _ensure_workout_sessions(cur)
+        cur.execute("""
+            INSERT INTO workout_sessions (session_date, routine_name, exercises, notes, created_at)
+            VALUES (%s, %s, %s::jsonb, %s, NOW())
+            ON CONFLICT (session_date, routine_name)
+            DO UPDATE SET exercises = EXCLUDED.exercises, notes = EXCLUDED.notes, created_at = NOW()
+            RETURNING id
+        """, [day, routine_name, exercises_json, notes])
+        row = cur.fetchone()
+        conn.commit()
+        return {"ok": True, "id": row[0] if row else None, "session_date": day}
+    except Exception as e:
+        print(f"[DB] upsert_workout_session failed: {type(e).__name__}: {e}", file=sys.stderr)
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        raise
+
+
 def get_db_readiness() -> dict:
     """Lightweight check: is the Neon DB populated enough to drive the UI?
 

@@ -20,6 +20,7 @@ const ActivityDetail = lazy(() => import('./pages/ActivityDetail'))
 const Progress = lazy(() => import('./pages/Progress'))
 const Gear = lazy(() => import('./pages/Gear'))
 const Records = lazy(() => import('./pages/Records'))
+const Muscu = lazy(() => import('./pages/Muscu'))
 const Setup = lazy(() => import('./pages/Setup'))
 const RunModal = lazy(() => import('./components/RunModal'))
 
@@ -413,6 +414,7 @@ function DashboardGate({ athlete, onLogout }) {
             <Route path="/gear" element={<Gear />} />
             <Route path="/analyse" element={<Navigate to="/progress" replace />} />
             <Route path="/records" element={<Records />} />
+            <Route path="/muscu" element={<Muscu />} />
             <Route path="/vo2max" element={<Navigate to="/progress" replace />} />
           </Routes>
         </Suspense>

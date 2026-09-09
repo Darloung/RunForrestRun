@@ -470,6 +470,29 @@ def ajustements_du_plan() -> dict[str, Any]:
 
 
 @mcp.tool
+def seance_muscu(routine: str = "Jambe 1", nombre: int = 3) -> dict[str, Any]:
+    """Return recent strength training sessions with exercises and weights.
+
+    Utilise ces donnees pour contextualiser la fatigue musculaire des jambes :
+    squat lourd ou hack squat veille = jambes chargees sur la sortie du lendemain.
+    """
+    import db as _db
+    sessions = _db.get_workout_sessions(routine_name=routine, limit=nombre)
+    return {
+        "routine": routine,
+        "nombre_sessions": len(sessions),
+        "derniere_session": sessions[0] if sessions else None,
+        "sessions": sessions,
+        "consigne_coach": (
+            "Ces seances ne remontent pas dans Garmin. Utilise les poids et volumes "
+            "pour estimer la fatigue neuromusculaire des jambes : squat lourd + hack squat "
+            "= 48h de recup musculaire avant une qualite ou une longue. "
+            "Leg curl lourd = ischio charges -> attention aux cotes et au trail technique."
+        ),
+    }
+
+
+@mcp.tool
 def ajuster_le_plan(
     jour: str,
     titre: str = "",

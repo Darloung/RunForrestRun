@@ -469,6 +469,45 @@ async def data_plan_overview(request: Request, day: str = ""):
     return overview
 
 
+_JAMBE1_TEMPLATE = [
+    {"name": "Fentes (Haltère)",                "target_sets": 3, "target_reps": "8-10",  "sets": []},
+    {"name": "Squat (Barre)",                    "target_sets": 4, "target_reps": "10",    "sets": []},
+    {"name": "Extension Mollets Debout (Machine)","target_sets": 3, "target_reps": "15-20","sets": []},
+    {"name": "Relevé de Bassin (Barre)",         "target_sets": 3, "target_reps": "10",    "sets": []},
+    {"name": "Hack Squat (Machine)",             "target_sets": 4, "target_reps": "10-20", "sets": []},
+    {"name": "Leg Curl Allongé (Machine)",       "target_sets": 3, "target_reps": "10",    "sets": []},
+]
+
+
+@app.get("/api/data/muscu")
+async def data_muscu_get(request: Request, routine: str = "Jambe 1", limit: int = 20):
+    """Return recent strength sessions and the routine template."""
+    sessions = db.get_workout_sessions(routine_name=routine, limit=limit)
+    last = sessions[0] if sessions else None
+    template = []
+    for ex in _JAMBE1_TEMPLATE:
+        last_ex = next((e for e in (last["exercises"] if last else []) if e["name"] == ex["name"]), None)
+        template.append({**ex, "sets": last_ex["sets"] if last_ex else []})
+    return {"template": template, "sessions": sessions, "routine_name": routine}
+
+
+@app.post("/api/data/muscu")
+async def data_muscu_post(request: Request):
+    """Save a new strength session."""
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+    session_date = str(payload.get("session_date") or date.today().isoformat())[:10]
+    routine_name = str(payload.get("routine_name") or "Jambe 1")
+    exercises = payload.get("exercises")
+    if not isinstance(exercises, list):
+        raise HTTPException(status_code=400, detail="exercises must be a list")
+    notes = str(payload.get("notes") or "")
+    result = db.upsert_workout_session(session_date, routine_name, exercises, notes)
+    return result
+
+
 def _upload_garmin_workout_export(export: dict) -> tuple[dict, dict]:
     import garmin_freshness
 
