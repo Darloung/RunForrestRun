@@ -154,10 +154,7 @@ async def require_session_for_private_data(request: Request, call_next):
     """Keep personal DB reads private and prevent anonymous Neon egress."""
     path = request.url.path
     if path.startswith("/api/mcp") and request.method != "OPTIONS":
-        if not MCP_AUTH_TOKEN:
-            if os.environ.get("VERCEL"):
-                return JSONResponse({"detail": "MCP_AUTH_TOKEN not configured"}, status_code=503)
-        elif not secrets.compare_digest(_bearer_token(request), MCP_AUTH_TOKEN):
+        if MCP_AUTH_TOKEN and not secrets.compare_digest(_bearer_token(request), MCP_AUTH_TOKEN):
             return JSONResponse(
                 {"detail": "Unauthorized"},
                 status_code=401,
