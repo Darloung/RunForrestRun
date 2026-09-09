@@ -1,7 +1,10 @@
 """Shared FastMCP server for the running coach.
 
-Lecture : le journal statique genere par scripts/coach_journal.py (aucun acces a
-Neon ni Garmin).
+Lecture : par ordre de priorite —
+  1. COACH_SNAPSHOT_URL (env) — URL explicite du snapshot JSON
+  2. Fichiers locaux (public/coach-journal.json, dist/coach-journal.json)
+  3. URL statique Vercel ({VERCEL_PROJECT_PRODUCTION_URL}/coach-journal.json)
+  4. Generation live depuis la DB Neon (fallback Vercel — aucun fichier necessaire)
 
 Ecriture : les outils `ajuster_le_plan` / `annuler_ajustement_plan` ecrivent dans
 la table `plan_overrides`. C'est le seul canal par lequel une decision du coach
@@ -61,8 +64,105 @@ def _load_snapshot_url(url: str) -> dict[str, Any]:
     return response.json()
 
 
+def _generate_live_snapshot() -> dict[str, Any]:
+    """Generate a coach snapshot live from DB (fallback when no static file exists)."""
+    from datetime import timedelta
+    import db as _db
+    from runner_profile import PROFILE as RUNNER
+    from daily_training_plan import build_three_day_training_guidance, set_plan_overrides
+
+    today = date.today()
+    today_iso = today.isoformat()
+    seven_days_ago = (today - timedelta(days=7)).isoformat()
+
+    # Apply coach plan overrides (best-effort)
+    try:
+        set_plan_overrides(_db.get_plan_overrides())
+    except Exception as exc:
+        print(f"[coach-mcp] plan overrides unavailable: {exc}", flush=True)
+        set_plan_overrides({})
+
+    # Recent runs for plan logic (90-day window)
+    recent_runs = _db.get_recent_runs_for_plan(today_iso, days=90)[:10]
+    latest_sleep = _db.get_latest_sleep_score(today_iso)
+    guidance = build_three_day_training_guidance(today, recent_runs, latest_sleep)
+
+    # 7-day volume
+    vol_7j = sum(
+        float(r.get("distance_km") or 0)
+        for r in recent_runs
+        if str(r.get("date") or "") >= seven_days_ago
+    )
+
+    # Format runs for coach output
+    def _fmt_run(r: dict) -> dict:
+        pace_s = r.get("pace_sec_per_km")
+        allure = f"{int(pace_s) // 60}:{int(pace_s) % 60:02d}/km" if pace_s else ""
+        return {
+            "date": str(r.get("date") or "")[:10],
+            "nom": r.get("name", "Run"),
+            "distance_km": r.get("distance_km"),
+            "allure": allure,
+            "fc_moy": r.get("average_heartrate"),
+            "fc_max": r.get("max_heartrate"),
+        }
+
+    derniers_runs = [_fmt_run(r) for r in recent_runs]
+
+    # Other activities (last 14 days)
+    autres: list[dict] = []
+    try:
+        cutoff_14d = (today - timedelta(days=14)).isoformat()
+        for a in _db.get_cross_training_activities():
+            if str(a.get("start_date_local") or "")[:10] >= cutoff_14d:
+                autres.append({
+                    "date": str(a.get("start_date_local") or "")[:10],
+                    "type": a.get("type", ""),
+                    "nom": a.get("name", ""),
+                    "duree_min": round(int(a.get("elapsed_time") or 0) / 60),
+                    "denivele_positif_m": round(float(a.get("total_elevation_gain") or 0)),
+                })
+    except Exception as exc:
+        print(f"[coach-mcp] cross-training unavailable: {exc}", flush=True)
+
+    # Next 3 sessions from guidance
+    all_sessions = guidance.get("sessions", [])
+    projection = [
+        {
+            "date": (today + timedelta(days=i)).isoformat(),
+            "label": s.get("relativeLabel", f"J+{i}"),
+            "titre": s.get("title", ""),
+            "categorie": s.get("category", ""),
+        }
+        for i, s in enumerate(all_sessions[1:4], 1)
+    ]
+
+    objectif = (
+        f"{RUNNER.race_name} — {RUNNER.race_date.isoformat()}, "
+        f"calibrage {RUNNER.goal_label} ({RUNNER.pace('marathon')})"
+    )
+
+    return {
+        "genere_le": today_iso,
+        "objectif": objectif,
+        "profil": RUNNER.as_dict(),
+        "zones_allure": {key: RUNNER.pace(key) for key in RUNNER.paces},
+        "derniers_runs": derniers_runs,
+        "volume_7j_km": round(vol_7j, 1),
+        "autres_activites": autres,
+        "seance_du_jour": guidance,
+        "projection": projection,
+        "regle_ajustement": (
+            "Fatigue marquée (VFC basse, sommeil < 60 ou 2 nuits POOR/FAIR consécutives) : "
+            "réduire volume/intensité de 20 % ou convertir en footing facile. "
+            "Forme OK (VFC BALANCED, sommeil ≥ 75) : tenir le plan. "
+            "Toujours laisser 48h entre deux séances qualité."
+        ),
+    }
+
+
 def load_snapshot() -> dict[str, Any]:
-    """Load the latest coach snapshot from URL, local files, or Vercel static asset."""
+    """Load the latest coach snapshot from URL, local files, or generate live from DB."""
     snapshot_url = _snapshot_url()
     if snapshot_url:
         try:
@@ -88,7 +188,9 @@ def load_snapshot() -> dict[str, Any]:
         except Exception as exc:  # noqa: BLE001
             print(f"[coach-mcp] static snapshot URL failed ({exc})", flush=True)
 
-    raise FileNotFoundError(f"coach snapshot not found in: {', '.join(str(path) for path in paths)}")
+    # Final fallback: generate live from DB (Vercel production path)
+    print("[coach-mcp] no snapshot found; generating live from DB", flush=True)
+    return _generate_live_snapshot()
 
 
 def _bounded_count(value: int, default: int = 3, maximum: int = 7) -> int:
