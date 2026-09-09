@@ -103,6 +103,34 @@ function TrainingDayPanel({ guidance, primary = false, maxHr }) {
   )
 }
 
+function fmtHeroValue(v) {
+  if (v === null || v === undefined || v === '—') return '—'
+  if (typeof v === 'number') {
+    if (Math.abs(v) >= 1000) return Math.round(v).toLocaleString('fr-FR')
+    if (Number.isInteger(v)) return v.toString()
+    return v.toFixed(1)
+  }
+  return String(v)
+}
+
+function HeroStat({ label, value, unit, stagger, trend }) {
+  const trendColor = trend > 0 ? 'text-emerald-400' : trend < 0 ? 'text-red-400' : 'text-white/30'
+  return (
+    <div className="hero-stat cockpit_hero_stat" data-stagger={stagger} data-name={`cockpit_hero_stat_${label}`}>
+      <div className="hero-stat-label">{label}</div>
+      <div className="flex items-end gap-1">
+        <span className="hero-stat-value">{fmtHeroValue(value)}</span>
+        {unit && <span className="hero-stat-unit">{unit}</span>}
+      </div>
+      {trend !== undefined && (
+        <div className={`hero-stat-trend ${trendColor}`}>
+          {trend > 0 ? '▲' : trend < 0 ? '▼' : '—'} {Math.abs(trend)}%
+        </div>
+      )}
+    </div>
+  )
+}
+
 function titleWithoutEffort(title) {
   return String(title || 'Séance').split(' · ')[0]
 }
@@ -425,78 +453,83 @@ export default function Cockpit() {
       {data && <AlertBanner alerts={data.alerts} />}
       {data && (
         <div className="relative overflow-hidden rounded-2xl mb-4 sm:mb-6 cockpit_hero_banner" data-name="cockpit_hero_banner"
-          style={{ background: 'linear-gradient(160deg, #052e16 0%, #14532d 45%, #166534 75%, #15803d 100%)' }}>
-          {/* Mountain silhouette SVG */}
-          <svg className="absolute bottom-0 left-0 right-0 w-full pointer-events-none select-none" viewBox="0 0 1440 100" preserveAspectRatio="none" aria-hidden="true">
-            <path d="M0,100 L120,55 L240,70 L380,30 L520,60 L660,18 L780,50 L900,25 L1040,58 L1160,35 L1300,62 L1440,40 L1440,100 Z" fill="rgba(0,0,0,0.18)" />
-            <path d="M0,100 L80,72 L200,85 L320,55 L460,78 L600,42 L720,68 L860,45 L980,72 L1100,50 L1240,75 L1360,58 L1440,68 L1440,100 Z" fill="rgba(0,0,0,0.12)" />
-          </svg>
-          {/* Stars/dots texture — trail stars */}
-          <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true" style={{
-            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
+          style={{ background: 'linear-gradient(155deg, #020b03 0%, #041a08 25%, #072b10 50%, #0c3d18 75%, #145228 100%)' }}>
+          {/* Radial glow — top center */}
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true" style={{
+            background: 'radial-gradient(ellipse 70% 55% at 50% -10%, rgba(34,197,94,0.10) 0%, transparent 70%)',
           }} />
-          <div className="relative z-10 px-4 pt-5 pb-4 sm:px-6 sm:pt-6 sm:pb-5">
-            <p className="text-green-300/60 text-xs font-medium uppercase tracking-widest mb-3 sm:mb-4">Tableau de bord</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-3 cockpit_hero_stats" data-name="cockpit_hero_stats">
-          <StatCard label="Semaine en cours" value={data.week_volume} unit="km" />
-          <StatCard label="D+ semaine" value={data.week_elev > 0 ? data.week_elev : '—'} unit={data.week_elev > 0 ? "m" : ""} />
-          <StatCard label="7 jours" value={data.volume_7d} unit="km" />
-          <StatCard label="90 jours" value={data.volume_90d} unit="km" />
-          <StatCard label="365 jours" value={data.volume_365d} unit="km" />
-          <StatCard label="Moy. 4 sem." value={data.avg_4_weeks} unit="km/sem" />
-          <StatCard label="Total runs" value={data.total_activities} />
+          {/* Stars/dots texture */}
+          <div className="absolute inset-0 pointer-events-none select-none opacity-60" aria-hidden="true" style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
+            backgroundSize: '36px 36px',
+          }} />
+          {/* Mountain silhouette SVG */}
+          <svg className="absolute bottom-0 left-0 right-0 w-full pointer-events-none select-none" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0,90 L100,48 L220,62 L360,22 L500,54 L640,12 L760,44 L880,18 L1020,50 L1140,28 L1280,55 L1440,32 L1440,90 Z" fill="rgba(0,0,0,0.22)" />
+            <path d="M0,90 L70,65 L190,78 L300,50 L440,70 L580,38 L700,62 L840,40 L960,66 L1080,46 L1220,68 L1360,52 L1440,62 L1440,90 Z" fill="rgba(0,0,0,0.13)" />
+          </svg>
 
-          {/* FC Max card with inline edit */}
-          <div className="card px-3 py-3 relative cockpit_fcmax_card" data-name="cockpit_fcmax_card">
-            <div className="metric_label_caps mb-1 cockpit_fcmax_label" data-name="cockpit_fcmax_label">FC max utilisée</div>
-            {editingFcMax ? (
-              <div className="cockpit_fcmax_editor" data-name="cockpit_fcmax_editor">
-                <div className="flex items-center gap-1 cockpit_fcmax_editor_row" data-name="cockpit_fcmax_editor_row">
-                  <input
-                    type="number"
-                    value={fcMaxInput}
-                    onChange={e => setFcMaxInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') saveFcMax(); if (e.key === 'Escape') setEditingFcMax(false) }}
-                    className="w-16 text-lg font-mono font-semibold bg-surface-muted rounded px-1.5 py-0.5 border border-surface-border focus:outline-none focus:border-primary text-txt cockpit_fcmax_input"
-                    data-name="cockpit_fcmax_input"
-                    min={100} max={230} autoFocus
-                  />
-                  <button onClick={saveFcMax} className="p-1 rounded hover:bg-emerald-50 text-emerald-600 cockpit_fcmax_save_button" data-name="cockpit_fcmax_save_button"><Check size={14} /></button>
-                  <button onClick={() => setEditingFcMax(false)} className="p-1 rounded hover:bg-red-50 text-red-400 cockpit_fcmax_cancel_button" data-name="cockpit_fcmax_cancel_button"><X size={14} /></button>
-                </div>
-                {isOverridden && (
-                  <button onClick={resetFcMax} className="flex items-center gap-1 mt-1 text-[10px] text-txt-muted hover:text-primary cockpit_fcmax_reset_button" data-name="cockpit_fcmax_reset_button">
-                    <RotateCcw size={10} /> {observedFcMax90dInfo.source === 'observed_90d' ? 'Observée 90 j' : 'Référence'} ({observedFcMax90dInfo.hr})
-                  </button>
+          <div className="relative z-10 px-4 pt-6 pb-5 sm:px-8 sm:pt-8 sm:pb-6">
+            {/* Header row */}
+            <div className="flex items-center justify-between mb-5 sm:mb-6">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: 'rgba(134,239,172,0.45)' }}>
+                Tableau de bord
+              </p>
+              <p className="text-[10px]" style={{ color: 'rgba(134,239,172,0.35)' }}>
+                {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
+            </div>
+
+            {/* Hero stats grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 cockpit_hero_stats" data-name="cockpit_hero_stats">
+              <HeroStat label="Semaine" value={data.week_volume} unit="km" stagger={1} />
+              <HeroStat label="D+ semaine" value={data.week_elev > 0 ? data.week_elev : '—'} unit={data.week_elev > 0 ? 'm' : ''} stagger={2} />
+              <HeroStat label="7 jours" value={data.volume_7d} unit="km" stagger={3} />
+              <HeroStat label="90 jours" value={data.volume_90d} unit="km" stagger={4} />
+              <HeroStat label="365 jours" value={data.volume_365d} unit="km" stagger={5} />
+              <HeroStat label="Moy. 4 sem." value={data.avg_4_weeks} unit="km/s" stagger={6} />
+              <HeroStat label="Total runs" value={data.total_activities} stagger={7} />
+
+              {/* FC Max inline edit */}
+              <div className="hero-stat relative cockpit_fcmax_card" data-stagger={8} data-name="cockpit_fcmax_card">
+                <div className="hero-stat-label">FC max</div>
+                {editingFcMax ? (
+                  <div>
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        value={fcMaxInput}
+                        onChange={e => setFcMaxInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') saveFcMax(); if (e.key === 'Escape') setEditingFcMax(false) }}
+                        className="w-16 text-lg font-mono font-semibold rounded px-1.5 py-0.5 focus:outline-none cockpit_fcmax_input"
+                        style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}
+                        data-name="cockpit_fcmax_input"
+                        min={100} max={230} autoFocus
+                      />
+                      <button onClick={saveFcMax} className="p-1 rounded text-emerald-400 hover:text-emerald-300 cockpit_fcmax_save_button" data-name="cockpit_fcmax_save_button"><Check size={13} /></button>
+                      <button onClick={() => setEditingFcMax(false)} className="p-1 rounded text-red-400 hover:text-red-300 cockpit_fcmax_cancel_button" data-name="cockpit_fcmax_cancel_button"><X size={13} /></button>
+                    </div>
+                    {isOverridden && (
+                      <button onClick={resetFcMax} className="flex items-center gap-1 mt-1 text-[9px] hover:text-emerald-300 cockpit_fcmax_reset_button" style={{ color: 'rgba(134,239,172,0.45)' }} data-name="cockpit_fcmax_reset_button">
+                        <RotateCcw size={9} /> Reset ({observedFcMax90dInfo.hr})
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-end gap-1">
+                    <span className="hero-stat-value">{currentFcMax}</span>
+                    <span className="hero-stat-unit">bpm</span>
+                    <button onClick={startEdit} className="ml-auto p-1 rounded hover:text-emerald-300 transition-colors cockpit_fcmax_edit_button" style={{ color: 'rgba(134,239,172,0.4)' }} data-name="cockpit_fcmax_edit_button">
+                      <Pencil size={11} />
+                    </button>
+                  </div>
+                )}
+                {!editingFcMax && (
+                  <div className="hero-stat-trend" style={{ color: isOverridden ? 'rgba(251,191,36,0.7)' : 'rgba(134,239,172,0.35)' }}>
+                    {isOverridden ? 'Manuelle' : observedFcMax90dInfo.source === 'observed_90d' ? 'Observée 90 j' : 'Référence'}
+                  </div>
                 )}
               </div>
-            ) : (
-              <div className="flex items-baseline gap-1.5 cockpit_fcmax_value_row" data-name="cockpit_fcmax_value_row">
-                <div className="text-xl font-mono font-semibold text-txt cockpit_fcmax_value" data-name="cockpit_fcmax_value">{currentFcMax}</div>
-                <span className="text-xs text-txt-secondary cockpit_fcmax_unit" data-name="cockpit_fcmax_unit">bpm</span>
-                <button onClick={startEdit} className="ml-auto p-1 rounded hover:bg-surface-hover text-txt-muted hover:text-primary transition-colors cockpit_fcmax_edit_button" data-name="cockpit_fcmax_edit_button">
-                  <Pencil size={12} />
-                </button>
-              </div>
-            )}
-            {!editingFcMax && isOverridden && (
-              <div
-                className="metric_note_tiny_warning cockpit_fcmax_manual_note"
-                data-name="cockpit_fcmax_manual_note"
-                title="Réglage enregistré uniquement dans le stockage local de ce navigateur"
-              >
-                Manuelle · ce navigateur uniquement
-              </div>
-            )}
-            {!editingFcMax && !isOverridden && (
-              <div className="metric_note_tiny cockpit_fcmax_auto_note" data-name="cockpit_fcmax_auto_note">
-                {observedFcMax90dInfo.source === 'observed_90d'
-                  ? `Observée sur 90 j${observedFcMax90dInfo.date ? ` · ${parseLocalDate(observedFcMax90dInfo.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}` : ''}`
-                  : 'Référence personnelle · aucune FC max observée sur 90 j'}
-              </div>
-            )}
-          </div>
             </div>
           </div>
         </div>
