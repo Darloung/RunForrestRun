@@ -104,12 +104,12 @@ export default function RunModal() {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm run_modal_backdrop" data-name="run_modal_backdrop" />
 
       <div
-        className="relative bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up run_modal_dialog"
+        className="relative bg-surface-card rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-slide-up run_modal_dialog"
         data-name="run_modal_dialog"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-surface-border px-5 py-4 flex items-start justify-between rounded-t-2xl z-10 run_modal_header" data-name="run_modal_header">
+        <div className="sticky top-0 bg-surface-card backdrop-blur-sm border-b border-surface-border px-5 py-4 flex items-start justify-between rounded-t-2xl z-10 run_modal_header" data-name="run_modal_header">
           <div className="min-w-0 flex-1 mr-3 run_modal_title_block" data-name="run_modal_title_block">
             <h3 className="text-base font-semibold text-txt truncate run_modal_title" data-name="run_modal_title">{activity.name}</h3>
             <p className="text-xs text-txt-muted mt-0.5 run_modal_subtitle" data-name="run_modal_subtitle">

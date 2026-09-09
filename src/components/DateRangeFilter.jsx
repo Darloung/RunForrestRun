@@ -156,7 +156,7 @@ export default function DateRangeFilter() {
   if (!allActivities.length) return null
 
   return (
-    <div className="border-b border-surface-border bg-white/80 backdrop-blur-sm date_range_filter" data-name="date_range_filter">
+    <div className="border-b border-surface-border bg-surface-card backdrop-blur-sm date_range_filter" data-name="date_range_filter">
       <div className="max-w-screen-2xl mx-auto px-3 sm:px-6 date_range_filter_inner" data-name="date_range_filter_inner">
         <div className="flex items-center justify-between h-10 gap-2 date_range_filter_bar" data-name="date_range_filter_bar">
           <button
@@ -179,7 +179,7 @@ export default function DateRangeFilter() {
                 type="date"
                 value={toInputDate(virtualNow ?? Date.now())}
                 onChange={handleSimulatedDateChange}
-                className={`text-xs rounded-md border px-2 py-1 transition-colors date_range_filter_simulated_date_input ${virtualNow ? 'border-primary/60 bg-primary/5 text-primary font-medium' : 'border-surface-border bg-white text-txt-secondary hover:border-primary/40'}`}
+                className={`text-xs rounded-md border px-2 py-1 transition-colors date_range_filter_simulated_date_input ${virtualNow ? 'border-primary/60 bg-primary/5 text-primary font-medium' : 'border-surface-border bg-white text-txt-secondary hover:border-primary/40 dark:bg-transparent dark:text-green-200'}`}
                 data-name="date_range_filter_simulated_date_input"
                 title="Simuler une date pour ramener tous les calculs (90j, charges, records…) à ce jour"
               />

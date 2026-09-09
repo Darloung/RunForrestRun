@@ -470,10 +470,13 @@ html.dark input {
   border-color: rgba(255,255,255,0.12);
 }
 
-/* Dark mode recharts */
+/* Dark mode recharts — readable axis labels */
 html.dark .recharts-cartesian-grid-horizontal line,
-html.dark .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.07); }
-html.dark .recharts-text { fill: #4d7a5a; }
+html.dark .recharts-cartesian-grid-vertical line { stroke: rgba(255,255,255,0.06); }
+html.dark .recharts-text,
+html.dark .recharts-cartesian-axis-tick-value { fill: rgba(134,239,172,0.5) !important; }
+html.dark .recharts-legend-item-text { color: rgba(134,239,172,0.7) !important; }
+html.dark .recharts-default-legend { color: rgba(134,239,172,0.7) !important; }
 
 /* Dark mode Leaflet popup */
 html.dark .light-popup .leaflet-popup-content-wrapper {
@@ -493,3 +496,197 @@ html.dark .border-amber-200 { border-color: rgba(146,64,14,0.5) !important; }
 html.dark .text-amber-800 { color: #fcd34d !important; }
 html.dark .text-amber-700 { color: #fbbf24 !important; }
 html.dark .text-amber-600 { color: #f59e0b !important; }
+
+/* ===== DARK MODE — component-level targeted fixes ===== */
+
+/* Chart tooltips — opaque glass on dark */
+html.dark .chart_theme_tooltip,
+html.dark .tooltip_surface_card {
+  background: rgba(7,13,8,0.96) !important;
+  border-color: rgba(255,255,255,0.09) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.04) inset !important;
+  color: #e8f5e8 !important;
+}
+html.dark .chart_theme_tooltip_label,
+html.dark .tooltip_date_label { color: rgba(134,239,172,0.65) !important; }
+html.dark .tooltip_value_blue  { color: #7dd3fc !important; }
+html.dark .tooltip_value_red   { color: #fca5a5 !important; }
+html.dark .tooltip_value_green { color: #86efac !important; }
+
+/* RunModal — entire dialog */
+html.dark .run_modal_dialog {
+  background: rgba(7,13,8,0.97) !important;
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7) !important;
+}
+html.dark .run_modal_header {
+  background: rgba(7,13,8,0.93) !important;
+  border-bottom-color: rgba(255,255,255,0.07) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+html.dark .run_modal_header button { color: rgba(134,239,172,0.55); }
+html.dark .run_modal_header button:hover { color: #86efac; }
+
+/* DateRangeFilter bar */
+html.dark .date_range_filter {
+  background: rgba(7,13,8,0.92) !important;
+  border-bottom-color: rgba(255,255,255,0.06) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+html.dark .date_range_filter_simulated_date_input {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  color: #e8f5e8 !important;
+  color-scheme: dark;
+}
+html.dark .date_range_filter_simulated_date_reset {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(34,197,94,0.3) !important;
+  color: #4ade80 !important;
+}
+html.dark .date_range_filter_simulated_date_reset:hover {
+  background: rgba(34,197,94,0.1) !important;
+}
+/* Slider thumbs */
+html.dark .date_range_dual_slider_thumb_from,
+html.dark .date_range_dual_slider_thumb_to {
+  background: #16a34a !important;
+  border-color: #22c55e !important;
+  box-shadow: 0 0 8px rgba(34,197,94,0.4);
+}
+
+/* RunSplitSummary ranking cards */
+html.dark .run_rank_card {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+
+/* PaceDistanceScatter & PointGraph controls */
+html.dark .pace_distance_scatter_select,
+html.dark .pace_distance_scatter_zoom,
+html.dark .point_graph_zoom {
+  background: rgba(7,13,8,0.8) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+  color: #e8f5e8 !important;
+}
+
+/* Muscu inputs on dark bg-surface */
+html.dark .bg-surface {
+  background-color: rgba(255,255,255,0.06) !important;
+}
+html.dark .muscu_set_weight_input,
+html.dark .muscu_set_reps_input,
+html.dark .muscu_date_input,
+html.dark .muscu_notes_input {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  color: #e8f5e8 !important;
+}
+html.dark .muscu_exercise_card,
+html.dark .muscu_history_item {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+/* Muscu series/reps numbers */
+html.dark .muscu_set_weight_input::placeholder,
+html.dark .muscu_set_reps_input::placeholder { color: rgba(134,239,172,0.3) !important; }
+
+/* Runs page search input */
+html.dark .runs_search_input {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.09) !important;
+  color: #e8f5e8 !important;
+}
+html.dark .runs_search_input::placeholder { color: rgba(134,239,172,0.3) !important; }
+
+/* PlanDetails rest/slot badges */
+html.dark [class*="bg-slate-100"],
+html.dark [class*="bg-slate-500"] {
+  background: rgba(255,255,255,0.06) !important;
+}
+html.dark [class*="text-slate-"] { color: rgba(134,239,172,0.65) !important; }
+
+/* Tables on dark */
+html.dark .data_table_header_row { border-color: rgba(255,255,255,0.07); }
+html.dark .data_table_body_row {
+  border-color: rgba(255,255,255,0.05);
+}
+html.dark .data_table_body_row:hover { background: rgba(255,255,255,0.04) !important; }
+
+/* Badges on dark */
+html.dark .badge-brand { background: rgba(34,197,94,0.12) !important; color: #86efac !important; }
+html.dark .badge-danger { background: rgba(239,68,68,0.1) !important; color: #fca5a5 !important; }
+
+/* Alert banner on dark */
+html.dark .alert_banner { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.2); }
+
+/* ===== Premium design touches ===== */
+
+/* Section headings */
+.section-title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(134,239,172,0.5);
+  margin-bottom: 1rem;
+}
+html.dark .section-title { color: rgba(134,239,172,0.45); }
+
+/* Metric value accent colors */
+html.dark .metric_value_blue { color: #7dd3fc !important; }
+html.dark .metric_value_red  { color: #fca5a5 !important; }
+html.dark .metric_value_green { color: #86efac !important; }
+html.dark .metric_value_text { color: #e8f5e8 !important; }
+
+/* Scrollbar — dark themed */
+html.dark ::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); }
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+}
+html.dark ::-webkit-scrollbar-thumb:hover { background: rgba(34,197,94,0.3); }
+
+/* Focus rings */
+html.dark *:focus-visible {
+  outline: 2px solid rgba(34,197,94,0.5);
+  outline-offset: 2px;
+}
+
+/* Dark emerald/green tinted selects */
+html.dark select {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.1);
+  color: #e8f5e8;
+  color-scheme: dark;
+}
+
+/* Load distribution segments — keep colored on dark */
+html.dark .cockpit_load_distribution_card { }
+html.dark .cockpit_load_distribution_legend_row {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* Training day panels */
+html.dark .cockpit_daily_training_day {
+  background: rgba(255,255,255,0.035) !important;
+  border-color: rgba(255,255,255,0.07) !important;
+}
+html.dark .cockpit_daily_training_day.border-primary\/30 {
+  border-color: rgba(34,197,94,0.2) !important;
+  background: rgba(34,197,94,0.05) !important;
+}
+html.dark .cockpit_daily_training_future_row {
+  background: rgba(255,255,255,0.04) !important;
+}
+
+/* Gear table */
+html.dark .bg-primary\/5 { background: rgba(34,197,94,0.06) !important; }
+html.dark .bg-primary\/10 { background: rgba(34,197,94,0.1) !important; }
+
+/* Progress bar fill color for load dist */
+html.dark .h-full.rounded-full { }
