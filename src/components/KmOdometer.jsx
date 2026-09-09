@@ -2,42 +2,117 @@ import React, { useMemo, useState } from 'react'
 import { MapPin, ChevronDown, ChevronUp } from 'lucide-react'
 
 const MILESTONES = [
-  { km: 10,     icon: '🏃', label: '10 km',                              cat: 'race',    desc: 'Le grand classique du dimanche matin.' },
-  { km: 21.1,   icon: '🥈', label: 'Semi-marathon',                      cat: 'race',    desc: 'La moitié du marathon. Déjà exceptionnel.' },
-  { km: 42.2,   icon: '🗼', label: 'Marathon de Paris',                  cat: 'race',    desc: 'Champs-Élysées → Avenue Foch. La distance reine.' },
-  { km: 70,     icon: '🗡️', label: 'Zelda BotW — Traversée d\'Hyrule',  cat: 'game',    desc: 'Du Plateau du Destin jusqu\'au Château d\'Hyrule. À pied, sans cheval.' },
-  { km: 100,    icon: '🐉', label: 'Skyrim — Province de Bordeciel',     cat: 'game',    desc: '"Fus Ro Dah !" D\'Helgen jusqu\'à Solitude, en évitant les dragons.' },
-  { km: 145,    icon: '🥂', label: 'Paris → Reims',                      cat: 'geo',     desc: 'La ville du sacre et du champagne. Cheers.' },
-  { km: 168,    icon: '🌋', label: 'Diagonale des Fous',                 cat: 'race',    desc: '168 km autour du Piton de la Fournaise, La Réunion.' },
-  { km: 171,    icon: '⛰️', label: 'UTMB',                               cat: 'race',    desc: 'Tour du Mont-Blanc. 10 000 m D+. Le Graal des trailers.' },
-  { km: 185,    icon: '🧙', label: 'Bilbo — Bag-End → Rivendell',       cat: 'fiction', desc: 'La première étape du voyage de Bilbon Sacquet. Les elfes t\'attendent.' },
-  { km: 245,    icon: '⌚', label: 'Paris → Genève',                     cat: 'geo',     desc: 'Les montres et la fondue t\'attendent.' },
-  { km: 246,    icon: '⚔️', label: 'Spartathlon',                       cat: 'race',    desc: 'Athènes → Sparte. 246 km non-stop. Comme Philippidès.' },
-  { km: 250,    icon: '🏜️', label: 'Marathon des Sables',                cat: 'race',    desc: '6 étapes, 250 km, 38°C. Le plus dur du monde.' },
-  { km: 340,    icon: '🎡', label: 'Paris → Londres',                    cat: 'geo',     desc: 'Sous la Manche et jusqu\'à Big Ben.' },
-  { km: 465,    icon: '🍽️', label: 'Paris → Lyon',                      cat: 'geo',     desc: 'La capitale gastronomique t\'attend.' },
-  { km: 580,    icon: '🍷', label: 'Paris → Bordeaux',                   cat: 'geo',     desc: 'Dans les vignes du Médoc.' },
-  { km: 650,    icon: '🤠', label: 'Red Dead 2 — L\'Ouest Américain',   cat: 'game',    desc: 'De Blackwater jusqu\'à Saint Denis. Yeehaw.' },
-  { km: 775,    icon: '⚓', label: 'Paris → Marseille',                  cat: 'geo',     desc: 'Tour Eiffel → Vieux-Port. Bouillabaisse méritée.' },
-  { km: 800,    icon: '⚡', label: 'Poudlard Express',                   cat: 'fiction', desc: 'Londres → Écosse. Quai 9¾ compris. Butterbeer au bout.' },
-  { km: 930,    icon: '🌊', label: 'Paris → Nice',                      cat: 'geo',     desc: 'La Côte d\'Azur au bout des jambes.' },
-  { km: 1050,   icon: '🕊️', label: 'Camino de Santiago',                cat: 'race',    desc: 'Saint-Jean-Pied-de-Port → Santiago de Compostela.' },
-  { km: 1100,   icon: '💍', label: 'Bilbo — Bag-End → Erebor',          cat: 'fiction', desc: 'Le voyage complet jusqu\'à la Montagne Solitaire. Avec les nains.' },
-  { km: 1270,   icon: '🐂', label: 'Paris → Madrid',                    cat: 'geo',     desc: 'La Péninsule Ibérique à la force des mollets.' },
-  { km: 1420,   icon: '🍕', label: 'Paris → Rome',                      cat: 'geo',     desc: 'Toutes les routes y mènent. Especially yours.' },
-  { km: 1779,   icon: '🌋', label: 'Frodon — La Comté → Mordor',       cat: 'fiction', desc: '"On ne marche pas simplement jusqu\'au Mordor." Sauf toi.' },
-  { km: 2253,   icon: '❄️', label: 'GoT — King\'s Landing → Le Mur',   cat: 'fiction', desc: 'Westeros de bout en bout. Valar Morghulis.' },
-  { km: 2500,   icon: '🐺', label: 'Le Continent du Sorceleur',         cat: 'fiction', desc: 'Cintra jusqu\'à Nilfgaard. Toss a coin to your runner.' },
-  { km: 2850,   icon: '🪆', label: 'Paris → Moscou',                    cat: 'geo',     desc: 'L\'Europe entière sous tes chaussures.' },
-  { km: 3940,   icon: '🛣️', label: 'Route 66',                          cat: 'geo',     desc: 'Chicago → Los Angeles. L\'Amérique mythique.' },
-  { km: 4500,   icon: '🗽', label: 'New York → Los Angeles',            cat: 'geo',     desc: 'Coast to coast. La traversée des États-Unis.' },
-  { km: 5000,   icon: '🍄', label: 'The Last of Us — USA post-apo',     cat: 'game',    desc: 'Joel & Ellie à travers l\'Amérique dévastée. Toi aussi tu survis.' },
-  { km: 5837,   icon: '✈️', label: 'Paris → New York',                 cat: 'geo',     desc: 'Traversée de l\'Atlantique. À la course, évidemment.' },
-  { km: 9288,   icon: '🚂', label: 'Transsibérien',                     cat: 'geo',     desc: 'Moscou → Vladivostok. 9 fuseaux horaires.' },
-  { km: 9700,   icon: '⛩️', label: 'Paris → Tokyo',                    cat: 'geo',     desc: 'L\'autre bout du monde. À pied sec.' },
-  { km: 12742,  icon: '🌍', label: 'Diamètre de la Terre',              cat: 'geo',     desc: 'Assez pour traverser la planète en son centre.' },
-  { km: 40075,  icon: '🌏', label: 'Tour de la Terre',                  cat: 'geo',     desc: 'Le tour complet de l\'équateur terrestre. Légendaire.' },
-  { km: 384400, icon: '🌕', label: 'Terre → Lune',                      cat: 'geo',     desc: 'Houston, we have a runner.' },
+  // ── 0 → 50 km ──────────────────────────────────────────────────────────────
+  { km: 10,      icon: '🏃', label: '10 km',                                   cat: 'race',    desc: 'Le grand classique du dimanche matin.' },
+  { km: 21.1,    icon: '🥈', label: 'Semi-marathon',                           cat: 'race',    desc: 'La moitié du marathon. Déjà exceptionnel.' },
+  { km: 25,      icon: '🏰', label: 'Paris → Versailles',                      cat: 'geo',     desc: 'Du Trocadéro aux jardins de Versailles. La plus belle banlieue.' },
+  { km: 35,      icon: '🏎️', label: 'Initial D — Cols d\'Akina & Irohazaka',  cat: 'game',    desc: 'Takumi Fujiwara dans sa AE86. À fond dans les virages.' },
+  { km: 42.2,    icon: '🗼', label: 'Marathon de Paris',                       cat: 'race',    desc: 'Champs-Élysées → Avenue Foch. La distance reine.' },
+
+  // ── 50 → 100 km ─────────────────────────────────────────────────────────────
+  { km: 56,      icon: '🦔', label: 'Sonic — Green Hill Zone complète',        cat: 'game',    desc: 'Un aller-retour à travers les anneaux de Green Hill. SEGA !' },
+  { km: 70,      icon: '🗡️', label: 'Zelda BotW — Traversée d\'Hyrule',       cat: 'game',    desc: 'Du Plateau du Destin jusqu\'au Château d\'Hyrule. À pied, sans Epona.' },
+  { km: 80,      icon: '🎮', label: 'Cyberpunk 2077 — Night City de A à Z',   cat: 'game',    desc: 'Night City entière. Les fixers ne t\'attendent pas, V.' },
+  { km: 90,      icon: '🏅', label: 'Comrades Ultra (Afrique du Sud)',         cat: 'race',    desc: 'Durban → Pietermaritzburg. Le plus vieux ultra du monde.' },
+  { km: 100,     icon: '🐉', label: 'Skyrim — Province de Bordeciel',          cat: 'game',    desc: '"Fus Ro Dah !" D\'Helgen jusqu\'à Solitude, en évitant les dragons.' },
+
+  // ── 100 → 200 km ────────────────────────────────────────────────────────────
+  { km: 115,     icon: '🏛️', label: 'Astérix — Lutèce → Alésia',              cat: 'fiction', desc: 'Par Toutatis, une belle trotte à travers la Gaule.' },
+  { km: 125,     icon: '☢️', label: 'Fallout 4 — Le Commonwealth',             cat: 'game',    desc: 'Boston post-nucléaire de bout en bout. War never changes.' },
+  { km: 130,     icon: '⚗️', label: 'FMA — Resembool → Central City',         cat: 'fiction', desc: 'Edward Elric quitte son village natal vers la capitale d\'Amestris.' },
+  { km: 145,     icon: '🥂', label: 'Paris → Reims',                           cat: 'geo',     desc: 'La ville du sacre et du champagne. Cheers.' },
+  { km: 160,     icon: '🌲', label: 'Western States 100 Miles',                cat: 'race',    desc: '161 km, Sierra Nevada, 4 700 m D+. La référence de l\'ultra.' },
+  { km: 168,     icon: '🌋', label: 'Diagonale des Fous',                      cat: 'race',    desc: '168 km autour du Piton de la Fournaise, La Réunion.' },
+  { km: 171,     icon: '⛰️', label: 'UTMB',                                    cat: 'race',    desc: 'Tour du Mont-Blanc. 10 000 m D+. Le Graal des trailers.' },
+  { km: 185,     icon: '🧙', label: 'Bilbo — Bag-End → Rivendell',            cat: 'fiction', desc: 'La première étape du voyage de Bilbon. Les elfes t\'attendent.' },
+
+  // ── 200 → 350 km ────────────────────────────────────────────────────────────
+  { km: 200,     icon: '🗺️', label: 'Elden Ring — Terres Intermédiaires',     cat: 'game',    desc: 'De Limgrave jusqu\'aux pics du Farum Azula. Tu n\'es pas mort ?!' },
+  { km: 217,     icon: '☀️', label: 'Badwater 135 — Vallée de la Mort',        cat: 'race',    desc: 'Death Valley, 56°C au sol. La course la plus dure de la planète.' },
+  { km: 240,     icon: '🧙‍♂️', label: 'Kaamelott — Camelot → Rome',           cat: 'fiction', desc: 'Le Livre V. Arthur sur les routes de l\'Empire. C\'est bon, sire.' },
+  { km: 245,     icon: '⌚', label: 'Paris → Genève',                          cat: 'geo',     desc: 'Les montres et la fondue t\'attendent.' },
+  { km: 246,     icon: '⚔️', label: 'Spartathlon',                            cat: 'race',    desc: 'Athènes → Sparte. 246 km non-stop. Comme Philippidès en 490 av. J-C.' },
+  { km: 250,     icon: '🏜️', label: 'Marathon des Sables',                     cat: 'race',    desc: '6 étapes, 250 km, 38°C. Le plus dur du monde.' },
+  { km: 275,     icon: '🦖', label: 'Horizon Zero Dawn — Terrafed',            cat: 'game',    desc: 'Aloy à travers les ruines de Denver et les plaines à machines.' },
+  { km: 290,     icon: '⚙️', label: 'Attack on Titan — Entre les 3 murs',     cat: 'fiction', desc: 'Du Mur Maria jusqu\'au Mur Sina. Attention aux Titans Colosses.' },
+  { km: 320,     icon: '🦞', label: 'Paris → Rennes',                          cat: 'geo',     desc: 'Bretagne au bout des jambes. Galettes et cidre.' },
+  { km: 340,     icon: '🎡', label: 'Paris → Londres',                         cat: 'geo',     desc: 'Sous la Manche et jusqu\'à Big Ben.' },
+
+  // ── 350 → 700 km ────────────────────────────────────────────────────────────
+  { km: 385,     icon: '🥐', label: 'Paris → Nantes',                          cat: 'geo',     desc: 'Les Pays de la Loire et le Muscadet t\'attendent.' },
+  { km: 420,     icon: '💥', label: 'Dragon Ball — Kame House → Baba\'s Palace', cat: 'fiction', desc: 'Goku à travers le monde des humains. Kaméhaméha !' },
+  { km: 465,     icon: '🍽️', label: 'Paris → Lyon',                           cat: 'geo',     desc: 'La capitale gastronomique t\'attend.' },
+  { km: 488,     icon: '🥨', label: 'Paris → Strasbourg',                      cat: 'geo',     desc: 'Alsace, forêt noire, choucroute.' },
+  { km: 500,     icon: '🏺', label: 'AC Odyssey — Traversée de la Grèce Antique', cat: 'game', desc: 'De Kéfalonie jusqu\'à Athènes et Sparte. Μολὼν λαβέ !' },
+  { km: 545,     icon: '🌀', label: 'Naruto — Konoha → Village du Sable',     cat: 'fiction', desc: 'Du Village de la Feuille au Village du Sable. Dattebayo !' },
+  { km: 580,     icon: '🍷', label: 'Paris → Bordeaux',                        cat: 'geo',     desc: 'Dans les vignes du Médoc.' },
+  { km: 596,     icon: '⛵', label: 'Paris → Brest (aller)',                   cat: 'geo',     desc: 'La moitié du mythique Paris-Brest-Paris.' },
+  { km: 650,     icon: '🤠', label: 'Red Dead 2 — L\'Ouest Américain',        cat: 'game',    desc: 'De Blackwater jusqu\'à Saint Denis. Yeehaw.' },
+
+  // ── 700 → 1100 km ───────────────────────────────────────────────────────────
+  { km: 750,     icon: '💀', label: 'Mad Max Fury Road — Les Wasteland',      cat: 'fiction', desc: 'À travers le désert australien post-apo. WITNESS ME !' },
+  { km: 775,     icon: '⚓', label: 'Paris → Marseille',                       cat: 'geo',     desc: 'Tour Eiffel → Vieux-Port. Bouillabaisse méritée.' },
+  { km: 800,     icon: '⚡', label: 'Poudlard Express',                        cat: 'fiction', desc: 'Londres → Écosse. Quai 9¾ compris. Butterbeer au bout.' },
+  { km: 870,     icon: '🔮', label: 'The Witcher 3 — Novigrad → Toussaint',  cat: 'game',    desc: 'Geralt sur la Route impériale, cape au vent. Toss a coin.' },
+  { km: 900,     icon: '🐌', label: 'Paris → Perpignan',                       cat: 'geo',     desc: 'Le bout de la France métropolitaine. Catalogne en vue.' },
+  { km: 930,     icon: '🌊', label: 'Paris → Nice',                           cat: 'geo',     desc: 'La Côte d\'Azur au bout des jambes.' },
+  { km: 960,     icon: '🔥', label: 'Demon Slayer — Traversée du Japon',      cat: 'fiction', desc: 'De Sagiri-yama jusqu\'au Pilier de la Flamme. Hinokami Kagura !' },
+  { km: 1000,    icon: '📦', label: 'Death Stranding — Première livraison',   cat: 'game',    desc: 'Sam Porter Bridges relie les colonies. Keep on keeping on.' },
+  { km: 1050,    icon: '🕊️', label: 'Camino de Santiago',                     cat: 'race',    desc: 'Saint-Jean-Pied-de-Port → Santiago de Compostela.' },
+  { km: 1100,    icon: '💍', label: 'Bilbo — Bag-End → Erebor',               cat: 'fiction', desc: 'Le voyage complet jusqu\'à la Montagne Solitaire. Avec les nains.' },
+
+  // ── 1100 → 2000 km ──────────────────────────────────────────────────────────
+  { km: 1200,    icon: '🚵', label: 'Paris-Brest-Paris',                      cat: 'race',    desc: '1 200 km aller-retour. La légende du cyclisme, à la course.' },
+  { km: 1270,    icon: '🐂', label: 'Paris → Madrid',                         cat: 'geo',     desc: 'La Péninsule Ibérique à la force des mollets.' },
+  { km: 1350,    icon: '🧟', label: 'Walking Dead — Atlanta → Washington',    cat: 'fiction', desc: 'À travers une Amérique infestée. Ne cours pas trop vite.' },
+  { km: 1420,    icon: '🍕', label: 'Paris → Rome',                           cat: 'geo',     desc: 'Toutes les routes y mènent. Especially yours.' },
+  { km: 1500,    icon: '🏴‍☠️', label: 'One Piece — Traversée de l\'East Blue', cat: 'fiction', desc: 'De l\'île Dawn jusqu\'à Loguetown. Les 4 Empereurs t\'attendent.' },
+  { km: 1650,    icon: '⭐', label: 'Lucky Luke — Traversée du Far West',     cat: 'fiction', desc: 'Plus vite que son ombre. De Daisy Town jusqu\'au Pacifique.' },
+  { km: 1700,    icon: '📖', label: 'Jack Kerouac — Sur la Route',            cat: 'fiction', desc: 'New York → San Francisco. La beat generation à fond.' },
+  { km: 1779,    icon: '🌋', label: 'Frodon — La Comté → Mordor',            cat: 'fiction', desc: '"On ne marche pas simplement jusqu\'au Mordor." Sauf toi.' },
+
+  // ── 2000 → 4000 km ──────────────────────────────────────────────────────────
+  { km: 2000,    icon: '🌊', label: 'Ulysse — Retour à Ithaque',              cat: 'fiction', desc: 'Troie → Ithaque. 10 ans, des Cyclopes, des Sirènes. Toi c\'est moins.' },
+  { km: 2253,    icon: '❄️', label: 'GoT — King\'s Landing → Le Mur',        cat: 'fiction', desc: 'Westeros de bout en bout. Valar Morghulis.' },
+  { km: 2400,    icon: '⚗️', label: 'FMA — Traversée complète d\'Amestris',  cat: 'fiction', desc: 'Edward Elric, de Resembool jusqu\'aux Portes du Nord. Équivalence.' },
+  { km: 2500,    icon: '🐺', label: 'Le Continent du Sorceleur',              cat: 'fiction', desc: 'Cintra jusqu\'à Nilfgaard. Toss a coin to your runner.' },
+  { km: 2850,    icon: '🪆', label: 'Paris → Moscou',                         cat: 'geo',     desc: 'L\'Europe entière sous tes chaussures.' },
+  { km: 3000,    icon: '📦', label: 'Death Stranding — USA complète',         cat: 'game',    desc: 'Sam Porter Bridges de la Cité des Chutes à Port Knot City.' },
+  { km: 3200,    icon: '✨', label: 'Jojo\'s — Japon vers l\'Égypte',        cat: 'fiction', desc: 'Jotaro Kujo, de Tokyo jusqu\'au Caire. Yare yare daze.' },
+  { km: 3400,    icon: '🚴', label: 'Tour de France — Distance totale',       cat: 'race',    desc: '~3 400 km de cols et de pavés. Tour à toi.' },
+  { km: 3500,    icon: '🐘', label: 'Hannibal — Carthage → Rome via les Alpes', cat: 'fiction', desc: 'Avec éléphants. 218 av. J.-C. Toi sans éléphants.' },
+  { km: 3940,    icon: '🛣️', label: 'Route 66',                               cat: 'geo',     desc: 'Chicago → Los Angeles. L\'Amérique mythique.' },
+  { km: 4000,    icon: '🃏', label: 'Forrest Gump — Run across America',      cat: 'fiction', desc: '"Run, Forrest, run !" De la côte Est jusqu\'au Pacifique. Now I\'m tired.' },
+
+  // ── 4000 → 10 000 km ────────────────────────────────────────────────────────
+  { km: 4500,    icon: '🗽', label: 'New York → Los Angeles',                 cat: 'geo',     desc: 'Coast to coast. La traversée des États-Unis.' },
+  { km: 4800,    icon: '🍁', label: 'Trans-Canada Highway',                    cat: 'geo',     desc: 'St John\'s (Terre-Neuve) → Victoria (C.-B.). Le Canada de A à Z.' },
+  { km: 5000,    icon: '🍄', label: 'The Last of Us — USA post-apo',          cat: 'game',    desc: 'Joel & Ellie à travers l\'Amérique dévastée. Toi aussi tu survis.' },
+  { km: 5500,    icon: '⛵', label: 'Christophe Colomb — Vers le Nouveau Monde', cat: 'fiction', desc: 'Palos de la Frontera → Bahamas. 1492. La Terre n\'est pas plate.' },
+  { km: 5837,    icon: '✈️', label: 'Paris → New York',                      cat: 'geo',     desc: 'Traversée de l\'Atlantique. À la course, évidemment.' },
+  { km: 6200,    icon: '🌸', label: 'One Piece — Route vers le Nouveau Monde', cat: 'fiction', desc: 'Mi-chemin de la Grand Line. Fishman Island en vue.' },
+  { km: 7200,    icon: '🧭', label: 'Phileas Fogg — 1er quart du Tour',      cat: 'fiction', desc: 'Londres → Bombay. Début du Tour du Monde en 80 Jours. En courant.' },
+  { km: 7700,    icon: '🐫', label: 'Marco Polo — Venise → Pékin',            cat: 'fiction', desc: 'La Route de la Soie. Des siècles avant Google Maps.' },
+  { km: 9288,    icon: '🚂', label: 'Transsibérien',                          cat: 'geo',     desc: 'Moscou → Vladivostok. 9 fuseaux horaires.' },
+  { km: 9700,    icon: '⛩️', label: 'Paris → Tokyo',                         cat: 'geo',     desc: 'L\'autre bout du monde. À pied sec.' },
+
+  // ── 10 000 → 50 000 km ──────────────────────────────────────────────────────
+  { km: 10000,   icon: '🌍', label: 'Cap Town → Nordkapp (Cap to Cap)',        cat: 'geo',     desc: 'L\'Afrique du Sud jusqu\'à la pointe nord de la Norvège. L\'axe du monde.' },
+  { km: 11000,   icon: '🐋', label: 'Jules Verne — Voyage au Centre de la Terre', cat: 'fiction', desc: 'Reykjavik → Naples (en surface). Le voyage intérieur de Lidenbrock.' },
+  { km: 12742,   icon: '🌑', label: 'Diamètre de la Terre',                   cat: 'geo',     desc: 'Assez pour traverser la planète en son centre.' },
+  { km: 13000,   icon: '🦅', label: 'Expédition Lewis & Clark',                cat: 'fiction', desc: 'Missouri → Pacifique et retour. 1804-1806. L\'Amérique sauvage.' },
+  { km: 17000,   icon: '🦁', label: 'Africa Eco Race — Paris → Dakar legacy', cat: 'race',    desc: 'L\'héritier du Dakar originel. Sable, soleil, et des jambes en acier.' },
+  { km: 20000,   icon: '🏴‍☠️', label: 'One Piece — Grand Line complète',      cat: 'fiction', desc: 'De l\'East Blue jusqu\'à Laugh Tale. Tu es le Roi des Pirates.' },
+  { km: 28000,   icon: '🌐', label: 'Astro Boy — Tour de la Terre ×0.7',     cat: 'fiction', desc: 'Atom parcourt la planète à la vitesse de la lumière. Toi à la vitesse du trail.' },
+  { km: 40000,   icon: '📚', label: 'Phileas Fogg — Tour du Monde en 80 jours', cat: 'fiction', desc: 'Jules Verne. Londres → Londres via Inde, Hong-Kong, Japon, USA.' },
+  { km: 40075,   icon: '🌏', label: 'Tour de la Terre — Équateur complet',     cat: 'geo',     desc: 'Le tour complet de l\'équateur terrestre. Légendaire.' },
+
+  // ── Au-delà de la Terre ─────────────────────────────────────────────────────
+  { km: 60000,   icon: '⛏️', label: 'Minecraft — Spawn → World Border',       cat: 'game',    desc: 'La limite du monde généré. Au-delà : le void. Et des bugs.' },
+  { km: 80000,   icon: '🦑', label: 'Jules Verne — Vingt Mille Lieues sous les Mers', cat: 'fiction', desc: 'Le Nautilus du Capitaine Nemo. Sous les mers du monde entier.' },
+  { km: 150000,  icon: '🛸', label: 'Star Wars — Kessel Run partiel',         cat: 'fiction', desc: 'Han Solo a fait le Kessel Run en moins de 12 parsecs. Toi aussi, à l\'échelle.' },
+  { km: 384400,  icon: '🌕', label: 'Terre → Lune',                           cat: 'geo',     desc: 'Houston, we have a runner.' },
+  { km: 1000000, icon: '🚀', label: '1 000 000 km — L\'ISS en 1,5 jours',    cat: 'geo',     desc: 'La Station Spatiale Internationale parcourt 1M km en moins de 2 jours.' },
 ]
 
 const CAT_STYLE = {
@@ -62,7 +137,7 @@ function fmtKm(km) {
 }
 
 function fmtDelta(km) {
-  return '+ ' + km.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' km'
+  return '+ ' + km.toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' km'
 }
 
 export default function KmOdometer({ totalKm }) {
@@ -71,7 +146,7 @@ export default function KmOdometer({ totalKm }) {
   const { prev, next, progress, passed, upcoming } = useMemo(() => {
     const passed = MILESTONES.filter(m => m.km <= totalKm)
     const upcoming = MILESTONES.filter(m => m.km > totalKm)
-    const prev = passed[passed.length - 1] ?? { km: 0, icon: '🚀', label: 'Départ', cat: 'geo', desc: 'L\'aventure commence !' }
+    const prev = passed[passed.length - 1] ?? { km: 0, icon: '🚀', label: 'Départ', cat: 'geo', desc: "L'aventure commence !" }
     const next = upcoming[0] ?? null
     const progress = next ? Math.min(1, (totalKm - prev.km) / (next.km - prev.km)) : 1
     return { prev, next, progress, passed, upcoming }
@@ -117,7 +192,6 @@ export default function KmOdometer({ totalKm }) {
       {next && (
         <>
           <div className="relative pt-5 mb-1 cockpit_odometer_track_wrapper" data-name="cockpit_odometer_track_wrapper">
-            {/* Runner emoji above bar */}
             <div
               className="absolute top-0 transition-all duration-700 ease-out cockpit_odometer_runner"
               data-name="cockpit_odometer_runner"
@@ -125,7 +199,6 @@ export default function KmOdometer({ totalKm }) {
             >
               <span className="text-lg leading-none select-none">🏃</span>
             </div>
-            {/* Bar */}
             <div className="h-2.5 bg-surface-muted rounded-full overflow-hidden cockpit_odometer_bar_track" data-name="cockpit_odometer_bar_track">
               <div
                 className="h-full bg-gradient-to-r from-brand/50 to-brand rounded-full transition-all duration-700 ease-out cockpit_odometer_bar_fill"
@@ -134,7 +207,6 @@ export default function KmOdometer({ totalKm }) {
               />
             </div>
           </div>
-          {/* Distance markers below bar */}
           <div className="flex items-center justify-between text-[10px] font-mono mb-4 cockpit_odometer_bar_labels" data-name="cockpit_odometer_bar_labels">
             <span className="text-txt-muted cockpit_odometer_bar_from" data-name="cockpit_odometer_bar_from">{fmtKm(prev.km)}</span>
             <span className="text-brand font-semibold cockpit_odometer_bar_remaining" data-name="cockpit_odometer_bar_remaining">
@@ -183,7 +255,7 @@ export default function KmOdometer({ totalKm }) {
         </div>
       )}
 
-      {/* Footer: progress count + toggle */}
+      {/* Footer */}
       <div className="mt-4 pt-3 border-t border-surface-border flex items-center justify-between cockpit_odometer_footer" data-name="cockpit_odometer_footer">
         <span className="text-[10px] text-txt-muted cockpit_odometer_count" data-name="cockpit_odometer_count">
           {passed.length} / {MILESTONES.length} paliers débloqués
