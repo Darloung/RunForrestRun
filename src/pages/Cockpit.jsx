@@ -20,6 +20,7 @@ import Loader from '../components/Loader'
 import RunMap from '../components/RunMap'
 import PaceDistanceScatter from '../components/PaceDistanceScatter'
 import GarminWorkoutButton from '../components/GarminWorkoutButton'
+import KmOdometer from '../components/KmOdometer'
 
 const RECENT_RUNS_LIMIT = 5
 
@@ -279,6 +280,11 @@ export default function Cockpit() {
     return computeCockpit(activities, computedPRs)
   }, [activities, computedPRs, now])
 
+  const totalKmAllTime = useMemo(
+    () => allActivities.reduce((sum, a) => sum + (a.distance || 0), 0) / 1000,
+    [allActivities]
+  )
+
   // FC max must be computed first — load distribution depends on it.
   const currentFcMaxInfo = useMemo(() => {
     void fcMaxVersion
@@ -480,6 +486,8 @@ export default function Cockpit() {
           </div>
         </div>
       )}
+
+      <KmOdometer totalKm={totalKmAllTime} />
 
       {/* Daily Training — carte pleine largeur */}
       <div className="card mb-4 sm:mb-6 cockpit_daily_training_card" data-name="cockpit_daily_training_card">
