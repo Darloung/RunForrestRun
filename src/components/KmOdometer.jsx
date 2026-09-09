@@ -142,6 +142,7 @@ function fmtDelta(km) {
 
 export default function KmOdometer({ totalKm }) {
   const [showAll, setShowAll] = useState(false)
+  const [showPassed, setShowPassed] = useState(false)
 
   const { prev, next, progress, passed, upcoming } = useMemo(() => {
     const passed = MILESTONES.filter(m => m.km <= totalKm)
@@ -152,6 +153,7 @@ export default function KmOdometer({ totalKm }) {
     return { prev, next, progress, passed, upcoming }
   }, [totalKm])
 
+  const passedReversed = [...passed].reverse()
   const previewUpcoming = upcoming.slice(1, 5)
   const extraUpcoming = upcoming.slice(5)
 
@@ -174,17 +176,48 @@ export default function KmOdometer({ totalKm }) {
         </div>
       </div>
 
-      {/* Unlocked badge */}
+      {/* Unlocked badge + toggle */}
       {passed.length > 0 && (
-        <div className="flex items-center gap-2 mb-4 cockpit_odometer_unlocked" data-name="cockpit_odometer_unlocked">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-txt-muted cockpit_odometer_unlocked_label" data-name="cockpit_odometer_unlocked_label">
-            Débloqué
-          </span>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 rounded-lg cockpit_odometer_unlocked_badge" data-name="cockpit_odometer_unlocked_badge">
-            <span className="text-base leading-none cockpit_odometer_unlocked_icon" data-name="cockpit_odometer_unlocked_icon">{prev.icon}</span>
-            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 cockpit_odometer_unlocked_name" data-name="cockpit_odometer_unlocked_name">{prev.label}</span>
-            <span className="text-[10px] font-mono text-emerald-500/70 cockpit_odometer_unlocked_km" data-name="cockpit_odometer_unlocked_km">· {fmtKm(prev.km)}</span>
+        <div className="mb-4 cockpit_odometer_unlocked" data-name="cockpit_odometer_unlocked">
+          <div className="flex items-center gap-2 cockpit_odometer_unlocked_row" data-name="cockpit_odometer_unlocked_row">
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-txt-muted cockpit_odometer_unlocked_label" data-name="cockpit_odometer_unlocked_label">
+              Dernier débloqué
+            </span>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/10 rounded-lg cockpit_odometer_unlocked_badge" data-name="cockpit_odometer_unlocked_badge">
+              <span className="text-base leading-none cockpit_odometer_unlocked_icon" data-name="cockpit_odometer_unlocked_icon">{prev.icon}</span>
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 cockpit_odometer_unlocked_name" data-name="cockpit_odometer_unlocked_name">{prev.label}</span>
+              <span className="text-[10px] font-mono text-emerald-500/70 cockpit_odometer_unlocked_km" data-name="cockpit_odometer_unlocked_km">· {fmtKm(prev.km)}</span>
+            </div>
+            {passed.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setShowPassed(v => !v)}
+                className="ml-auto flex items-center gap-1 text-[10px] text-txt-secondary hover:text-txt transition-colors cockpit_odometer_passed_toggle"
+                data-name="cockpit_odometer_passed_toggle"
+              >
+                {showPassed ? <><ChevronUp size={11} /> Masquer</> : <><ChevronDown size={11} /> Voir les {passed.length} débloqués</>}
+              </button>
+            )}
           </div>
+
+          {/* Full unlocked list */}
+          {showPassed && (
+            <div className="mt-2 space-y-1 cockpit_odometer_passed_list" data-name="cockpit_odometer_passed_list">
+              {passedReversed.map(m => (
+                <div key={m.km} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-emerald-500/5 cockpit_odometer_passed_row" data-name={`cockpit_odometer_passed_row_${m.km}`}>
+                  <span className="text-emerald-500 text-xs leading-none cockpit_odometer_passed_check" data-name="cockpit_odometer_passed_check">✓</span>
+                  <span className="text-base w-5 text-center leading-none cockpit_odometer_passed_icon" data-name="cockpit_odometer_passed_icon">{m.icon}</span>
+                  <span className="text-xs text-txt flex-1 min-w-0 truncate cockpit_odometer_passed_name" data-name="cockpit_odometer_passed_name">{m.label}</span>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 cockpit_odometer_passed_cat ${CAT_STYLE[m.cat]}`} data-name="cockpit_odometer_passed_cat">
+                    {CAT_LABEL[m.cat]}
+                  </span>
+                  <span className="text-[10px] font-mono text-txt-muted w-16 text-right shrink-0 cockpit_odometer_passed_km" data-name="cockpit_odometer_passed_km">
+                    {fmtKm(m.km)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
