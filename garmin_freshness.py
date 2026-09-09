@@ -113,9 +113,14 @@ def _extract_client_id_from_token(di_token: str) -> str | None:
         return None
 
 
-def _normalize_token_data(token_data: Any) -> dict[str, Any]:
+def _normalize_token_data(token_data: Any) -> "dict[str, Any] | str":
+    """Return either a di_token dict (old format) or a garth base64 string (new format)."""
     if isinstance(token_data, str):
-        token_data = json.loads(token_data)
+        try:
+            token_data = json.loads(token_data)
+        except json.JSONDecodeError:
+            # Raw base64 garth dumps() string — return as-is for client.loads()
+            return token_data
     if not isinstance(token_data, dict):
         raise ValueError("Unsupported Garmin token payload")
 
@@ -123,6 +128,10 @@ def _normalize_token_data(token_data: Any) -> dict[str, Any]:
         token_data = token_data[GARMIN_TOKEN_FILE]
     elif LEGACY_GARTH_TOKEN_FILE in token_data:
         token_data = token_data[LEGACY_GARTH_TOKEN_FILE]
+
+    # garth base64 string stored inside a wrapper dict
+    if isinstance(token_data, str):
+        return token_data  # forward to client.loads()
 
     if not isinstance(token_data, dict):
         raise ValueError("Unsupported Garmin token payload shape")
@@ -200,18 +209,43 @@ def _read_local_token_payload(token_dir: str = "") -> tuple[dict[str, Any] | Non
     return None, _primary_token_dir(token_dir)
 
 
+def _garth(api: Garmin):
+    """Return the garth Client from a Garmin instance (compat: 0.2.x uses .garth, newer uses .client)."""
+    return getattr(api, "client", None) or api.garth
+
+
 def _load_profile_from_api(api: Garmin) -> None:
-    api._load_profile_and_settings()
+    # garminconnect 0.2.x has no _load_profile_and_settings.
+    # Populate api.display_name from garth.profile so that URL-building
+    # endpoints (heart rates, resting HR, etc.) work after token loads().
+    client = _garth(api)
+    profile = getattr(client, "profile", None) or {}
+    if isinstance(profile, dict) and profile.get("displayName"):
+        api.display_name = profile["displayName"]
+        api.full_name = profile.get("fullName", "")
+    if not getattr(api, "display_name", None):
+        # Fallback: warm up the session — also populates garth.profile
+        settings = client.connectapi("/userprofile-service/userprofile/user-settings")
+        if isinstance(settings, dict):
+            user_data = settings.get("userData", {})
+            if isinstance(user_data, dict):
+                api.unit_system = user_data.get("measurementSystem", "metric")
 
 
 def serialize_garmin_tokens(api: Garmin) -> dict[str, Any]:
-    return {GARMIN_TOKEN_FILE: json.loads(api.client.dumps())}
+    # garth 0.4.x dumps() returns a base64 string — store it as-is, not json.loads'd
+    return {GARMIN_TOKEN_FILE: _garth(api).dumps()}
 
 
 def _save_api_tokens(api: Garmin, token_dir: str = "") -> None:
     target = _primary_token_dir(token_dir)
     if target is not None:
-        api.client.dump(str(target))
+        client = _garth(api)
+        client.dump(str(target))
+        # Also write garmin_tokens.json (base64 dumps) so _read_local_token_payload
+        # finds it on next load without needing to reconstruct from two separate files.
+        garmin_tokens_path = target / GARMIN_TOKEN_FILE
+        garmin_tokens_path.write_text(json.dumps({GARMIN_TOKEN_FILE: client.dumps()}))
         print(f"[GARMIN] tokens saved to {target}", file=sys.stderr)
         # IMPORTANT : ne pas s'arrêter ici. Sur self_hosted un token_dir local est
         # défini, donc garminconnect rafraîchit le token dans ce fichier — mais ce
@@ -232,7 +266,7 @@ def _save_api_tokens(api: Garmin, token_dir: str = "") -> None:
 def _build_profile(api: Garmin) -> dict[str, Any]:
     raw_profile: dict[str, Any] = {}
     try:
-        profile_data = api.client.connectapi(
+        profile_data = _garth(api).connectapi(
             "/userprofile-service/userprofile/personal-information"
         )
         if isinstance(profile_data, dict):
@@ -286,17 +320,25 @@ def _api_from_token_payload(token_data: Any) -> Garmin | None:
     try:
         normalized = _normalize_token_data(token_data)
         api = Garmin()
-        api.client.loads(json.dumps(normalized))
-        # Le token stocké en base peut avoir un access token (di_token) expiré :
-        # ce chemin n'appelle jamais login(), qui est le seul endroit où
-        # garminconnect rafraîchit proactivement le DI token. On force donc le
-        # refresh ici (via le di_refresh_token, plus longue durée de vie) avant le
-        # premier appel authentifié, sinon Vercel meurt sur un access token mort.
+        client = _garth(api)
+        if isinstance(normalized, str):
+            # garth base64 format (from client.dumps())
+            client.loads(normalized)
+        else:
+            # legacy di_token format
+            client.loads(json.dumps(normalized))
+        # Le token stocké en base peut avoir un access token expiré.
+        # garth 0.4.x: check oauth2_token.expired and call refresh_oauth2().
+        # Older garth (client-based): check di_refresh_token/_token_expires_soon.
         try:
-            client = api.client
-            if getattr(client, "di_refresh_token", None) and client._token_expires_soon():
+            oauth2 = getattr(client, "oauth2_token", None)
+            if oauth2 is not None:
+                if getattr(oauth2, "expired", False):
+                    print("[GARMIN] DB access token expired — refreshing before use", file=sys.stderr)
+                    client.refresh_oauth2()
+            elif getattr(client, "di_refresh_token", None) and getattr(client, "_token_expires_soon", lambda: False)():
                 print("[GARMIN] DB access token expiring/expired — refreshing before use", file=sys.stderr)
-                client._refresh_session()
+                getattr(client, "_refresh_session", lambda: None)()
         except Exception as exc:
             print(f"[GARMIN] proactive token refresh failed (continuing): {type(exc).__name__}: {exc}", file=sys.stderr)
         try:
@@ -387,26 +429,29 @@ def garmin_login(
     token_dir: str = "",
     mfa_code: str = "",
 ) -> dict[str, Any]:
-    prompt_mfa = None
     clean_mfa = (mfa_code or "").strip()
-    if clean_mfa:
-        prompt_mfa = lambda: clean_mfa
+    prompt_mfa_fn = (lambda: clean_mfa) if clean_mfa else None
 
-    init_kwargs: dict = {"email": email, "password": password}
+    api = Garmin(email=email, password=password)
+    client = _garth(api)
     try:
-        api = Garmin(prompt_mfa=prompt_mfa, **init_kwargs)
-    except TypeError:
-        api = Garmin(**init_kwargs)
-    tokenstore = str(_primary_token_dir(token_dir)) if _primary_token_dir(token_dir) else None
-
-    try:
-        api.login(tokenstore)
-    except GarminConnectAuthenticationError as exc:
+        # Call garth.login() directly so we can pass prompt_mfa.
+        # garminconnect 0.2.x api.login() doesn't forward prompt_mfa to garth,
+        # so using it would block on interactive input for MFA.
+        # email/password are positional-only in garth sso.login (PEP 570)
+        if prompt_mfa_fn is not None:
+            client.login(email, password, prompt_mfa=prompt_mfa_fn)
+        else:
+            client.login(email, password)
+    except Exception as exc:
         message = str(exc)
         if "mfa" in message.lower():
             raise GarminMFARequiredError(
                 "Code MFA Garmin requis. Renseigne le champ MFA puis réessaie."
             ) from exc
+        if isinstance(exc, GarminConnectAuthenticationError):
+            raise
+        # garth raises its own exception types — re-raise as-is
         raise
 
     _save_api_tokens(api, token_dir)
@@ -1384,7 +1429,7 @@ def _garmin_user_id(api: Garmin) -> Any:
         uid = prof.get("id") or prof.get("userProfileId") or prof.get("profileId")
         if uid:
             return uid
-    social = _safe(lambda: api.client.connectapi("/userprofile-service/socialProfile"), "socialProfile") or {}
+    social = _safe(lambda: _garth(api).connectapi("/userprofile-service/socialProfile"), "socialProfile") or {}
     if isinstance(social, dict):
         return social.get("profileId") or social.get("id")
     return None

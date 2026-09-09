@@ -101,10 +101,10 @@ export default function Layout({ children, athlete, onLogout }) {
   return (
     <div className="min-h-screen flex flex-col layout_root" data-name="layout_root">
       {/* ── Desktop header (hidden on mobile) ── */}
-      <header className="hidden lg:block border-b border-surface-border bg-white/80 backdrop-blur-sm sticky top-0 z-50 layout_header_desktop" data-name="layout_header_desktop">
+      <header className="hidden lg:block border-b border-green-900/30 bg-forest-dark sticky top-0 z-50 layout_header_desktop" data-name="layout_header_desktop">
         <div className="max-w-screen-2xl mx-auto px-6 h-14 flex items-center justify-between layout_header_desktop_inner" data-name="layout_header_desktop_inner">
           <div className="flex items-center gap-8 layout_header_desktop_brand_nav" data-name="layout_header_desktop_brand_nav">
-            <h1 className="text-lg font-bold tracking-tight text-txt layout_brand_desktop" data-name="layout_brand_desktop">
+            <h1 className="text-lg font-bold tracking-tight layout_brand_desktop" data-name="layout_brand_desktop">
               <BrandLogo />
             </h1>
             <nav className="flex items-center gap-1 layout_nav_desktop" data-name="layout_nav_desktop">
@@ -120,14 +120,14 @@ export default function Layout({ children, athlete, onLogout }) {
           <div className="flex items-center gap-4 layout_header_desktop_actions" data-name="layout_header_desktop_actions">
             <button
               onClick={() => setDark(d => !d)}
-              className="flex items-center px-2 py-1.5 rounded-lg text-xs text-txt-muted hover:text-txt bg-surface-muted hover:bg-surface-hover transition-colors layout_dark_mode_button_desktop"
+              className="flex items-center px-2 py-1.5 rounded-lg text-xs text-green-300/70 hover:text-white bg-white/5 hover:bg-white/10 transition-colors layout_dark_mode_button_desktop"
               data-name="layout_dark_mode_button_desktop"
               title={dark ? 'Passer en mode clair' : 'Passer en mode sombre'}
             >
               {dark ? <Sun size={14} /> : <Moon size={14} />}
             </button>
             <button onClick={refresh} disabled={syncing}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 layout_refresh_button_desktop ${syncing ? 'bg-brand/10 text-brand' : allDone ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'bg-surface-muted text-txt-secondary hover:text-txt hover:bg-surface-hover'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition-all duration-200 layout_refresh_button_desktop ${syncing ? 'bg-green-400/20 text-green-300' : allDone ? 'bg-green-500/20 text-green-300 hover:bg-green-500/30' : 'bg-white/5 text-green-300/70 hover:text-white hover:bg-white/10'}`}
               data-name="layout_refresh_button_desktop"
               title="Forcer la synchronisation">
               <RefreshCw
@@ -138,20 +138,20 @@ export default function Layout({ children, athlete, onLogout }) {
               <span>{syncing ? 'Sync...' : countLabel}</span>
             </button>
             <button onClick={handleClearCache}
-              className="flex items-center px-2 py-1.5 rounded-lg text-xs text-txt-muted hover:text-red-500 bg-surface-muted hover:bg-red-50 transition-colors layout_clear_cache_button"
+              className="flex items-center px-2 py-1.5 rounded-lg text-xs text-green-300/70 hover:text-red-400 bg-white/5 hover:bg-red-500/10 transition-colors layout_clear_cache_button"
               data-name="layout_clear_cache_button"
               title="Vider le cache et re-synchroniser">
               <Trash2 size={14} />
             </button>
             {athlete && (
               <div className="flex items-center gap-2 layout_athlete_desktop" data-name="layout_athlete_desktop">
-                {athlete.profile_pic && <img src={athlete.profile_pic} alt="" className="w-7 h-7 rounded-full layout_athlete_desktop_avatar" data-name="layout_athlete_desktop_avatar" />}
-                <span className="text-sm text-txt-secondary layout_athlete_desktop_name" data-name="layout_athlete_desktop_name">{athlete.firstname}</span>
+                {athlete.profile_pic && <img src={athlete.profile_pic} alt="" className="w-7 h-7 rounded-full ring-2 ring-green-500/30 layout_athlete_desktop_avatar" data-name="layout_athlete_desktop_avatar" />}
+                <span className="text-sm text-green-200/80 layout_athlete_desktop_name" data-name="layout_athlete_desktop_name">{athlete.firstname}</span>
               </div>
             )}
             {onLogout && (
               <button onClick={onLogout}
-                className="flex items-center px-3 py-1.5 rounded-lg text-sm text-txt-muted hover:text-txt bg-surface-muted hover:bg-surface-hover transition-colors layout_logout_button"
+                className="flex items-center px-3 py-1.5 rounded-lg text-sm text-green-300/70 hover:text-white bg-white/5 hover:bg-white/10 transition-colors layout_logout_button"
                 data-name="layout_logout_button">
                 <LogOut size={14} />
               </button>
@@ -159,12 +159,12 @@ export default function Layout({ children, athlete, onLogout }) {
           </div>
         </div>
         {syncing && (
-          <div className="h-0.5 bg-surface-muted layout_sync_progress_desktop" data-name="layout_sync_progress_desktop">
-            <div className="h-full bg-brand animate-pulse rounded-full layout_sync_progress_bar" data-name="layout_sync_progress_bar" style={{ width: '100%' }} />
+          <div className="h-0.5 bg-green-900 layout_sync_progress_desktop" data-name="layout_sync_progress_desktop">
+            <div className="h-full bg-green-400 animate-pulse rounded-full layout_sync_progress_bar" data-name="layout_sync_progress_bar" style={{ width: '100%' }} />
           </div>
         )}
         {bs && !allDone && !syncing && (
-          <div className="h-5 bg-amber-50 flex items-center justify-center text-[10px] text-amber-700 layout_backfill_banner_desktop" data-name="layout_backfill_banner_desktop">
+          <div className="h-5 bg-amber-900/40 flex items-center justify-center text-[10px] text-amber-300 layout_backfill_banner_desktop" data-name="layout_backfill_banner_desktop">
             {bs.rateLimited && <>Garmin rate limit{bs.rate?.endpoint ? ` (${bs.rate.endpoint})` : ''} — nouvelle tentative dans 15 min</>}
             {!bs.rateLimited && !bs.listComplete && bs.maxed && 'Limite Garmin atteinte'}
             {!bs.rateLimited && !bs.listComplete && !bs.maxed && allActivities.length > 0 &&
@@ -176,24 +176,24 @@ export default function Layout({ children, athlete, onLogout }) {
       </header>
 
       {/* ── Mobile top safe-area + status bar (iOS only) ── */}
-      <div className="lg:hidden safe-top bg-surface layout_safe_top_mobile" data-name="layout_safe_top_mobile" />
+      <div className="lg:hidden safe-top bg-forest-dark layout_safe_top_mobile" data-name="layout_safe_top_mobile" />
 
       {/* ── Mobile top bar ── */}
-      <header className="lg:hidden sticky top-[env(safe-area-inset-top,0px)] z-50 bg-white/85 backdrop-blur-xl border-b border-surface-border layout_header_mobile" data-name="layout_header_mobile">
+      <header className="lg:hidden sticky top-[env(safe-area-inset-top,0px)] z-50 bg-forest-dark/95 backdrop-blur-xl border-b border-green-900/40 layout_header_mobile" data-name="layout_header_mobile">
         <div className="h-11 px-4 flex items-center justify-between layout_header_mobile_inner" data-name="layout_header_mobile_inner">
-          <h1 className="text-[17px] font-bold tracking-tight text-txt layout_brand_mobile" data-name="layout_brand_mobile">
+          <h1 className="text-[17px] font-bold tracking-tight layout_brand_mobile" data-name="layout_brand_mobile">
             <BrandLogo compact />
           </h1>
           <div className="flex items-center gap-2 layout_header_mobile_actions" data-name="layout_header_mobile_actions">
             <button
               onClick={() => setDark(d => !d)}
-              className="w-10 h-10 flex items-center justify-center rounded-full text-txt-muted bg-surface-muted ios-press layout_dark_mode_button_mobile"
+              className="w-10 h-10 flex items-center justify-center rounded-full text-green-300/70 bg-white/5 ios-press layout_dark_mode_button_mobile"
               data-name="layout_dark_mode_button_mobile"
             >
               {dark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
             <button onClick={refresh} disabled={syncing}
-              className={`w-10 h-10 flex items-center justify-center rounded-full ios-press layout_refresh_button_mobile ${syncing ? 'text-brand bg-brand/10' : allDone ? 'text-emerald-600 bg-emerald-50' : 'text-txt-muted bg-surface-muted'}`}
+              className={`w-10 h-10 flex items-center justify-center rounded-full ios-press layout_refresh_button_mobile ${syncing ? 'text-green-300 bg-green-500/20' : allDone ? 'text-green-300 bg-green-500/20' : 'text-green-300/70 bg-white/5'}`}
               data-name="layout_refresh_button_mobile"
               title="Synchroniser">
               <RefreshCw
@@ -203,17 +203,17 @@ export default function Layout({ children, athlete, onLogout }) {
               />
             </button>
             {athlete?.profile_pic && (
-              <img src={athlete.profile_pic} alt="" className="w-7 h-7 rounded-full layout_athlete_mobile_avatar" data-name="layout_athlete_mobile_avatar" />
+              <img src={athlete.profile_pic} alt="" className="w-7 h-7 rounded-full ring-2 ring-green-500/30 layout_athlete_mobile_avatar" data-name="layout_athlete_mobile_avatar" />
             )}
           </div>
         </div>
         {syncing && (
-          <div className="h-0.5 bg-surface-muted layout_sync_progress_mobile" data-name="layout_sync_progress_mobile">
-            <div className="h-full bg-brand animate-pulse rounded-full layout_sync_progress_bar_mobile" data-name="layout_sync_progress_bar_mobile" style={{ width: '100%' }} />
+          <div className="h-0.5 bg-green-900 layout_sync_progress_mobile" data-name="layout_sync_progress_mobile">
+            <div className="h-full bg-green-400 animate-pulse rounded-full layout_sync_progress_bar_mobile" data-name="layout_sync_progress_bar_mobile" style={{ width: '100%' }} />
           </div>
         )}
         {bs && !allDone && !syncing && (
-          <div className="h-5 bg-amber-50 flex items-center justify-center text-[10px] text-amber-700 px-3 layout_backfill_banner_mobile" data-name="layout_backfill_banner_mobile">
+          <div className="h-5 bg-amber-900/40 flex items-center justify-center text-[10px] text-amber-300 px-3 layout_backfill_banner_mobile" data-name="layout_backfill_banner_mobile">
             {bs.rateLimited && 'Rate limit — retry dans 15 min'}
             {!bs.rateLimited && !bs.listComplete && !bs.maxed && allActivities.length > 0 &&
               `Chargement des anciennes courses…`}
@@ -246,13 +246,13 @@ export default function Layout({ children, athlete, onLogout }) {
       )}
 
       {/* ── iOS bottom tab bar ── */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/85 dark:bg-opacity-90 backdrop-blur-xl border-t border-surface-border safe-bottom layout_nav_mobile" data-name="layout_nav_mobile">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-forest-dark/95 backdrop-blur-xl border-t border-green-900/40 safe-bottom layout_nav_mobile" data-name="layout_nav_mobile">
         <div className="flex items-stretch layout_nav_mobile_inner" data-name="layout_nav_mobile_inner">
           {navItems.map(({ to, icon: Icon, label, shortLabel }) => (
             <NavLink key={to} to={to} end={to === '/'}
               className={({ isActive }) =>
                 `flex flex-col items-center justify-center flex-1 min-w-0 pt-2.5 pb-2 gap-1 ios-press layout_nav_mobile_item layout_nav_mobile_item_${label.toLowerCase()} ${
-                  isActive ? 'text-brand' : 'text-txt-muted'
+                  isActive ? 'text-green-300' : 'text-green-200/40'
                 }`
               }
               data-name={`layout_nav_mobile_item_${label.toLowerCase()}`}>

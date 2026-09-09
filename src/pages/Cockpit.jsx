@@ -422,10 +422,23 @@ export default function Cockpit() {
 
   return (
     <div data-name="page_cockpit">
-      <h2 className="page_heading mb-4 sm:mb-6 cockpit_header_title" data-name="cockpit_header_title">Cockpit</h2>
       {data && <AlertBanner alerts={data.alerts} />}
       {data && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4 mb-4 sm:mb-6 cockpit_hero_stats" data-name="cockpit_hero_stats">
+        <div className="relative overflow-hidden rounded-2xl mb-4 sm:mb-6 cockpit_hero_banner" data-name="cockpit_hero_banner"
+          style={{ background: 'linear-gradient(160deg, #052e16 0%, #14532d 45%, #166534 75%, #15803d 100%)' }}>
+          {/* Mountain silhouette SVG */}
+          <svg className="absolute bottom-0 left-0 right-0 w-full pointer-events-none select-none" viewBox="0 0 1440 100" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0,100 L120,55 L240,70 L380,30 L520,60 L660,18 L780,50 L900,25 L1040,58 L1160,35 L1300,62 L1440,40 L1440,100 Z" fill="rgba(0,0,0,0.18)" />
+            <path d="M0,100 L80,72 L200,85 L320,55 L460,78 L600,42 L720,68 L860,45 L980,72 L1100,50 L1240,75 L1360,58 L1440,68 L1440,100 Z" fill="rgba(0,0,0,0.12)" />
+          </svg>
+          {/* Stars/dots texture — trail stars */}
+          <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true" style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+            backgroundSize: '40px 40px',
+          }} />
+          <div className="relative z-10 px-4 pt-5 pb-4 sm:px-6 sm:pt-6 sm:pb-5">
+            <p className="text-green-300/60 text-xs font-medium uppercase tracking-widest mb-3 sm:mb-4">Tableau de bord</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-3 cockpit_hero_stats" data-name="cockpit_hero_stats">
           <StatCard label="Semaine en cours" value={data.week_volume} unit="km" />
           <StatCard label="D+ semaine" value={data.week_elev > 0 ? data.week_elev : '—'} unit={data.week_elev > 0 ? "m" : ""} />
           <StatCard label="7 jours" value={data.volume_7d} unit="km" />
@@ -483,6 +496,8 @@ export default function Cockpit() {
                   : 'Référence personnelle · aucune FC max observée sur 90 j'}
               </div>
             )}
+          </div>
+            </div>
           </div>
         </div>
       )}

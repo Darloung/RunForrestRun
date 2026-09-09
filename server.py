@@ -35,8 +35,26 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import db
 from database_convergence import synchronize_available_databases
-from coach_mcp import create_http_app as create_coach_mcp_http_app
-from coach_mcp import load_snapshot as load_coach_snapshot
+try:
+    from coach_mcp import create_http_app as create_coach_mcp_http_app
+    from coach_mcp import load_snapshot as load_coach_snapshot
+    _FASTMCP_OK = True
+except Exception as _fastmcp_err:
+    print(f"[WARN] fastmcp unavailable ({_fastmcp_err}); /api/mcp disabled", file=sys.stderr)
+    _FASTMCP_OK = False
+
+    from contextlib import asynccontextmanager as _acm
+
+    class _NoOpMcpApp:
+        @_acm
+        async def lifespan(self, app):
+            yield
+
+    def create_coach_mcp_http_app(path="/"):
+        return _NoOpMcpApp()
+
+    def load_coach_snapshot():
+        return {}
 from compat_api_logging import log_compatibility_api_usage
 from daily_training_plan import (
     build_plan_overview,
@@ -340,7 +358,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.mount("/api/mcp", coach_mcp_app)
+if _FASTMCP_OK:
+    app.mount("/api/mcp", coach_mcp_app)
 
 
 def _bearer_token(request: Request) -> str:
