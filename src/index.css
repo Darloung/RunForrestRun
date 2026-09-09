@@ -426,42 +426,43 @@ html.dark .point_graph_selected_ring {
 
 /* ===== DARK MODE — rich forest palette ===== */
 html.dark body {
-  background-color: #070d08;
+  background-color: #070d08 !important;
   background-image:
     radial-gradient(ellipse 90% 40% at 50% -5%, rgba(21,128,61,0.07) 0%, transparent 65%);
-  color: #e8f5e8;
+  color: #e8f5e8 !important;
 }
 
 /* Glass cards */
 html.dark .card {
-  background: rgba(255,255,255,0.035);
-  border-color: rgba(255,255,255,0.07);
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.08) !important;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 20px rgba(0,0,0,0.28);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 20px rgba(0,0,0,0.28) !important;
   transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 html.dark .card:hover {
-  background: rgba(255,255,255,0.055);
-  border-color: rgba(34,197,94,0.2);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.36), 0 0 0 1px rgba(34,197,94,0.07);
+  background: rgba(255,255,255,0.07) !important;
+  border-color: rgba(34,197,94,0.22) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 32px rgba(0,0,0,0.36), 0 0 0 1px rgba(34,197,94,0.08) !important;
   transform: translateY(-2px);
 }
 
 /* Dark mode text utilities */
-html.dark .text-txt { color: #e8f5e8; }
-html.dark .text-txt-secondary { color: #86b893; }
-html.dark .text-txt-muted { color: #4d7a5a; }
+html.dark .text-txt { color: #e8f5e8 !important; }
+html.dark .text-txt-secondary { color: #86b893 !important; }
+html.dark .text-txt-muted { color: #537a5c !important; }
 
 /* Dark mode backgrounds */
 html.dark .bg-surface-muted,
-html.dark .bg-surface-hover { background-color: rgba(255,255,255,0.04); }
-html.dark .bg-white { background-color: rgba(255,255,255,0.04) !important; }
+html.dark .bg-surface-hover { background-color: rgba(255,255,255,0.05) !important; }
+html.dark .bg-white { background-color: rgba(255,255,255,0.05) !important; }
 html.dark .bg-white\/95 { background-color: rgba(7,13,8,0.95) !important; }
-html.dark .bg-white\/80 { background-color: rgba(7,13,8,0.8) !important; }
-html.dark .border-surface-border { border-color: rgba(255,255,255,0.07); }
-html.dark .bg-surface-card { background-color: rgba(255,255,255,0.035); }
-html.dark .hover\:bg-surface-hover:hover { background-color: rgba(255,255,255,0.06) !important; }
+html.dark .bg-white\/80 { background-color: rgba(7,13,8,0.82) !important; }
+html.dark .border-surface-border { border-color: rgba(255,255,255,0.08) !important; }
+html.dark .bg-surface-card { background-color: rgba(255,255,255,0.04) !important; }
+html.dark .bg-surface { background-color: rgba(255,255,255,0.04) !important; }
+html.dark .hover\:bg-surface-hover:hover { background-color: rgba(255,255,255,0.07) !important; }
 
 /* Dark mode inputs */
 html.dark input {

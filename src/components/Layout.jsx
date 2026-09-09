@@ -99,7 +99,7 @@ export default function Layout({ children, athlete, onLogout }) {
     : `${allActivities.length} runs${allDone ? '' : ' (partiel)'}`
 
   return (
-    <div className="min-h-screen flex flex-col layout_root" data-name="layout_root">
+    <div className={`min-h-screen flex flex-col layout_root transition-colors duration-300 ${dark ? 'bg-[#070d08] text-green-50' : 'bg-surface text-txt'}`} data-name="layout_root">
       {/* ── Desktop header (hidden on mobile) ── */}
       <header className="hidden lg:block border-b border-green-900/30 bg-forest-dark sticky top-0 z-50 layout_header_desktop" data-name="layout_header_desktop">
         <div className="max-w-screen-2xl mx-auto px-6 h-14 flex items-center justify-between layout_header_desktop_inner" data-name="layout_header_desktop_inner">
