@@ -316,17 +316,76 @@ def _build_profile(api: Garmin) -> dict[str, Any]:
     }
 
 
+def _configure_client_from_di_token(client: Any, token_dict: dict) -> bool:
+    """Configure a garth Client from a Garmin DI token dict (di_token / di_refresh_token).
+
+    garth 0.4.x's loads() only accepts its own base64 format, not the DI JWT
+    format returned by Garmin Connect Mobile. This helper maps the DI token
+    fields to an OAuth2Token so the client can make authenticated requests and
+    auto-refresh via client.refresh_oauth2().
+    """
+    try:
+        import base64 as _b64
+        from garth.auth_tokens import OAuth2Token, OAuth1Token  # type: ignore
+
+        di_access = token_dict.get("di_token") or token_dict.get("access_token", "")
+        di_refresh = token_dict.get("di_refresh_token") or token_dict.get("refresh_token", "")
+        if not di_access or not di_refresh:
+            return False
+
+        # Decode the JWT payload (no signature verification needed)
+        parts = di_access.split(".")
+        if len(parts) >= 2:
+            padding = "=" * (-len(parts[1]) % 4)
+            jwt_payload = json.loads(_b64.urlsafe_b64decode(parts[1] + padding))
+        else:
+            jwt_payload = {}
+
+        expires_at = jwt_payload.get("exp", 0)
+        issued_at = jwt_payload.get("iat", 0)
+        expires_in = max(0, expires_at - issued_at)
+        scope = " ".join(jwt_payload.get("scope", []) if isinstance(jwt_payload.get("scope"), list) else [])
+
+        oauth2 = OAuth2Token(
+            scope=scope,
+            jti=jwt_payload.get("jti", ""),
+            token_type="Bearer",
+            access_token=di_access,
+            refresh_token=di_refresh,
+            expires_in=expires_in,
+            expires_at=expires_at,
+            refresh_token_expires_in=7776000,
+            refresh_token_expires_at=expires_at + 7776000,
+        )
+        client.configure(oauth2_token=oauth2, domain="garmin.com")
+        return True
+    except Exception as exc:
+        print(f"[GARMIN] di_token → OAuth2Token mapping failed: {type(exc).__name__}: {exc}", file=sys.stderr)
+        return False
+
+
 def _api_from_token_payload(token_data: Any) -> Garmin | None:
     try:
         normalized = _normalize_token_data(token_data)
         api = Garmin()
         client = _garth(api)
         if isinstance(normalized, str):
-            # garth base64 format (from client.dumps())
-            client.loads(normalized)
+            # Try garth base64 format first; fall back to di_token JSON string
+            try:
+                client.loads(normalized)
+            except Exception:
+                # Maybe it's a JSON-encoded di_token dict
+                try:
+                    di_dict = json.loads(normalized)
+                    if isinstance(di_dict, dict) and not _configure_client_from_di_token(client, di_dict):
+                        raise ValueError("di_token mapping returned False")
+                    print("[GARMIN] loaded di_token via JSON fallback path", file=sys.stderr)
+                except Exception as inner:
+                    raise ValueError(f"garth loads and di_token fallback both failed: {inner}") from inner
         else:
-            # legacy di_token format
-            client.loads(json.dumps(normalized))
+            # Legacy di_token dict — configure directly without loads()
+            if not _configure_client_from_di_token(client, normalized):
+                client.loads(json.dumps(normalized))
         # Le token stocké en base peut avoir un access token expiré.
         # garth 0.4.x: check oauth2_token.expired and call refresh_oauth2().
         # Older garth (client-based): check di_refresh_token/_token_expires_soon.
