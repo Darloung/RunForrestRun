@@ -388,8 +388,12 @@ def donnees_recuperation(jours: int = 7) -> dict[str, Any]:
         row = db.get_latest_sleep_score(str(day))
         if row:
             duration_h = round(row["sleep_duration_seconds"] / 3600, 1) if row.get("sleep_duration_seconds") else None
+            # Garmin calendarDate = jour du réveil. La nuit a commencé J-1.
+            from datetime import date as _date
+            reveil = _date.fromisoformat(row["date"])
             sommeil.append({
                 "date": row["date"],
+                "nuit_du": (reveil - timedelta(days=1)).isoformat(),
                 "score": row.get("sleep_score"),
                 "qualite": row.get("sleep_quality"),
                 "duree_heures": duration_h,
@@ -441,6 +445,9 @@ def donnees_recuperation(jours: int = 7) -> dict[str, Any]:
         "sommeil": sommeil,
         "sante_runs": sante,
         "consigne_coach": (
+            "DATES — `nuit_du` = date de debut de la nuit (J-1 par rapport au reveil). "
+            "Toujours nommer la nuit ainsi : 'nuit du [nuit_du]' ou 'nuit du [nuit_du] au [date]'. "
+            "Ne jamais dire 'nuit du [date]' car date = jour du reveil (convention Garmin). "
             "SOMMEIL — Score >= 75 / GOOD : tenir le plan. "
             "60-74 / FAIR : option alleger (-20% volume ou intensite). "
             "< 60 / POOR ou 2 nuits consecutives mauvaises : footing facile ou repos. "
