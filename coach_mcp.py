@@ -548,6 +548,145 @@ def ajuster_le_plan(
 
 
 @mcp.tool
+def analyse_foulee(nombre: int = 6) -> dict[str, Any]:
+    """Analyse la foulée des N derniers runs : cadence, longueur de foulée, tendance.
+
+    Retourne pour chaque run et chaque km :
+    - cadence moyenne (spm) et longueur de foulée (cm)
+    - tendance cadence sur la période (en hausse / stable / en baisse)
+    - comparaison cible trail (155-165 spm) et conseils spécifiques
+
+    Utilise ces données pour identifier un manque de cadence, une foulée
+    trop longue/courte, ou une régression sur les dernières semaines.
+    """
+    import db as _db_mod
+    from datetime import timedelta
+
+    try:
+        conn = _db_mod._safe_conn()
+        cur = conn.cursor()
+
+        cur.execute("""
+            SELECT
+                a.id,
+                a.start_date_local::date AS jour,
+                a.distance,
+                a.elapsed_time,
+                a.average_speed,
+                a.average_cadence,
+                a.name
+            FROM activities a
+            WHERE a.type = 'Run' AND a.distance > 1000
+            ORDER BY a.start_date_local DESC
+            LIMIT %s
+        """, [nombre])
+        cols = [d[0] for d in cur.description]
+        runs = [dict(zip(cols, r)) for r in cur.fetchall()]
+
+        for run in runs:
+            run["jour"] = str(run["jour"])
+            # Cadence Garmin = demi-cadence (un seul pied) → multiplier par 2
+            cad_half = run.get("average_cadence") or 0
+            run["cadence_spm"] = round(cad_half * 2, 1) if cad_half else None
+            dist_km = run["distance"] / 1000 if run.get("distance") else 0
+            run["distance_km"] = round(dist_km, 2)
+            # Allure min/km
+            spd = run.get("average_speed") or 0
+            run["allure_min_km"] = round(1000 / spd / 60, 2) if spd > 0 else None
+            # Longueur de foulée estimée (m) : vitesse / (cadence/60)
+            if run["cadence_spm"] and spd:
+                run["foulee_estimee_cm"] = round(spd / (run["cadence_spm"] / 60) * 100, 1)
+            else:
+                run["foulee_estimee_cm"] = None
+
+            # Détail par km via laps
+            cur.execute("""
+                SELECT lap_index, distance, average_cadence, stride_length,
+                       average_speed, average_heartrate
+                FROM activity_laps
+                WHERE activity_id = %s
+                ORDER BY lap_index
+            """, [run["id"]])
+            lap_cols = [d[0] for d in cur.description]
+            laps = [dict(zip(lap_cols, r)) for r in cur.fetchall()]
+            for lap in laps:
+                cad = lap.get("average_cadence") or 0
+                lap["cadence_spm"] = round(cad * 2, 1) if cad else None
+                sl = lap.get("stride_length")
+                lap["foulee_cm"] = round(float(sl), 1) if sl else None
+                spd_l = lap.get("average_speed") or 0
+                lap["allure_min_km"] = round(1000 / spd_l / 60, 2) if spd_l > 0 else None
+            run["laps"] = laps
+            del run["id"]
+
+        # Tendance cadence sur la période (comparaison moitié récente vs ancienne)
+        cadences = [r["cadence_spm"] for r in runs if r.get("cadence_spm")]
+        tendance = "insuffisant (< 3 runs)"
+        if len(cadences) >= 3:
+            mid = len(cadences) // 2
+            avg_recent = sum(cadences[:mid]) / mid
+            avg_ancien = sum(cadences[mid:]) / (len(cadences) - mid)
+            delta = avg_recent - avg_ancien
+            if delta > 2:
+                tendance = f"en hausse (+{delta:.1f} spm)"
+            elif delta < -2:
+                tendance = f"en baisse ({delta:.1f} spm)"
+            else:
+                tendance = f"stable (Δ {delta:+.1f} spm)"
+
+        avg_cadence = round(sum(cadences) / len(cadences), 1) if cadences else None
+
+        # Cibles trail running
+        CIBLE_MIN, CIBLE_MAX = 155, 170
+        if avg_cadence:
+            if avg_cadence < CIBLE_MIN:
+                ecart = CIBLE_MIN - avg_cadence
+                diagnostic = (
+                    f"Cadence trop basse ({avg_cadence} spm, cible {CIBLE_MIN}-{CIBLE_MAX} spm trail). "
+                    f"Gain potentiel de {ecart:.0f} spm. "
+                    "Exercice : 30s de foulées rapides (70 pas d'un seul pied en 30s = 140 spm) "
+                    "intégrées en fin de footing facile, 3x/semaine."
+                )
+            elif avg_cadence > CIBLE_MAX:
+                diagnostic = (
+                    f"Cadence élevée ({avg_cadence} spm). "
+                    "Vérifie que la longueur de foulée est suffisante : "
+                    "une cadence haute avec petites foulées = sur-piétinement."
+                )
+            else:
+                diagnostic = (
+                    f"Cadence dans la cible trail ({avg_cadence} spm / {CIBLE_MIN}-{CIBLE_MAX} spm). "
+                    "Focus sur la régularité : maintenir cette cadence en montée."
+                )
+        else:
+            diagnostic = "Pas assez de données cadence."
+
+    except Exception as exc:
+        return {"erreur": f"{type(exc).__name__}: {exc}"}
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+    return {
+        "nombre_runs": len(runs),
+        "cadence_moyenne_spm": avg_cadence,
+        "cible_trail_spm": f"{CIBLE_MIN}-{CIBLE_MAX}",
+        "tendance_cadence": tendance,
+        "diagnostic": diagnostic,
+        "runs": runs,
+        "consigne_coach": (
+            "Cadence Garmin = demi-cadence × 2 = spm (pas par minute des DEUX pieds). "
+            "foulee_cm = longueur d'une foulée complète (2 appuis). "
+            "Trail cible : 155-170 spm sur plat, moins acceptable en montée raide. "
+            "Ne pas confondre cadence basse (foulée lente) et foulée longue (économie). "
+            "Recommande toujours un exercice concret si cadence < 155 spm."
+        ),
+    }
+
+
+@mcp.tool
 def annuler_ajustement_plan(jour: str) -> dict[str, Any]:
     """Remove the coach adjustment for one day and fall back to the coded plan."""
     db, _ = _plan_write_deps()
