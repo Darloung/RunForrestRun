@@ -476,6 +476,8 @@ def _week_sessions(week_num: int, phase: str, shape: dict[str, Any]) -> dict[int
     # semaine precedente. Le gabarit se repete a l'identique chaque semaine.
     after_wd = (long_wd + 1) % 7
 
+    training_days = PROFILE.training_weekdays
+
     sessions: dict[int, dict[str, Any]] = {}
     sessions[long_wd] = _long_for_week(week_num, phase, shape)
     if quality_wd not in sessions:
@@ -491,7 +493,7 @@ def _week_sessions(week_num: int, phase: str, shape: dict[str, Any]) -> dict[int
     )
 
     if rest_wd not in sessions:
-        if high_volume:
+        if high_volume and (training_days is None or rest_wd in training_days):
             sessions[rest_wd] = _easy_plan(
                 "Footing de volume",
                 f"{_scaled(RECOVERY_MINUTES_RANGE, position)}' tres facile a {RECOVERY_PACE}",
@@ -501,7 +503,7 @@ def _week_sessions(week_num: int, phase: str, shape: dict[str, Any]) -> dict[int
             sessions[rest_wd] = _rest()
 
     if after_wd not in sessions:
-        if high_volume:
+        if high_volume or (training_days is not None and after_wd not in training_days):
             sessions[after_wd] = _rest()
         else:
             sessions[after_wd] = _easy_plan(
@@ -510,8 +512,6 @@ def _week_sessions(week_num: int, phase: str, shape: dict[str, Any]) -> dict[int
                 f"a {RECOVERY_PACE}, ou repos",
                 tag="recovery",
             )
-
-    training_days = PROFILE.training_weekdays
 
     if eve_wd not in sessions:
         # La veille de la sortie longue est le premier jour qu'une semaine legere
