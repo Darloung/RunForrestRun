@@ -706,6 +706,112 @@ export default function Progress() {
         </div>
       )}
 
+      {/* ── Foulée & Cadence ── */}
+      {(() => {
+        const cadRuns = allActivities
+          .filter(a => a.type === 'Run' && a.average_cadence > 0 && a.distance > 1000)
+          .slice(0, 20)
+          .map(a => ({
+            date: (a.start_date_local || '').slice(0, 10),
+            spm: Math.round(a.average_cadence * 2),
+            dist: Math.round(a.distance / 100) / 10,
+          }))
+          .reverse()
+        if (!cadRuns.length) return null
+        const spms = cadRuns.map(r => r.spm)
+        const avg = Math.round(spms.reduce((s, v) => s + v, 0) / spms.length)
+        const mid = Math.floor(spms.length / 2)
+        const trend = spms.length >= 4
+          ? (spms.slice(-mid).reduce((s, v) => s + v, 0) / mid) - (spms.slice(0, mid).reduce((s, v) => s + v, 0) / mid)
+          : null
+        return (
+          <div className="mt-8 progress_foulee_section" data-name="progress_foulee_section">
+            <hr className="border-surface-border mb-6" />
+            <h3 className="text-lg font-semibold text-txt mb-6 progress_foulee_title" data-name="progress_foulee_title">Foulée & Cadence</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <div className="card">
+                <div className="stat-label">Cadence moy.</div>
+                <div className="flex items-end gap-1 mt-1">
+                  <span className="text-2xl font-mono font-bold text-txt">{avg}</span>
+                  <span className="text-xs text-txt-secondary mb-1">spm</span>
+                </div>
+                <div className={`text-xs mt-1 font-medium ${avg >= 155 ? 'text-emerald-500' : avg >= 148 ? 'text-amber-500' : 'text-red-400'}`}>
+                  {avg >= 155 ? '✓ Cible trail' : avg >= 148 ? '△ Proche cible' : '↑ À améliorer'}
+                </div>
+              </div>
+              <div className="card">
+                <div className="stat-label">Cible trail</div>
+                <div className="flex items-end gap-1 mt-1">
+                  <span className="text-2xl font-mono font-bold text-emerald-500">155</span>
+                  <span className="text-xs text-txt-secondary mb-1">– 170 spm</span>
+                </div>
+                <div className="text-xs text-txt-muted mt-1">Moins sur montée raide</div>
+              </div>
+              <div className="card">
+                <div className="stat-label">Écart cible</div>
+                <div className="flex items-end gap-1 mt-1">
+                  <span className={`text-2xl font-mono font-bold ${avg >= 155 ? 'text-emerald-500' : 'text-amber-500'}`}>
+                    {(avg >= 155 ? '+' : '') + (avg - 155)}
+                  </span>
+                  <span className="text-xs text-txt-secondary mb-1">spm</span>
+                </div>
+                <div className="text-xs text-txt-muted mt-1">vs 155 spm min</div>
+              </div>
+              <div className="card">
+                <div className="stat-label">Tendance</div>
+                <div className="flex items-end gap-1 mt-1">
+                  <span className={`text-2xl font-mono font-bold ${trend > 1 ? 'text-emerald-500' : trend < -1 ? 'text-red-400' : 'text-txt'}`}>
+                    {trend != null ? (trend > 0 ? '+' : '') + Math.round(trend) : '—'}
+                  </span>
+                  <span className="text-xs text-txt-secondary mb-1">spm</span>
+                </div>
+                <div className="text-xs text-txt-muted mt-1">récent vs ancien</div>
+              </div>
+            </div>
+            <ChartCard title="Cadence par sortie (spm)" subtitle={`${cadRuns.length} dernières sorties`} name="progress_foulee_chart">
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={cadRuns} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                  <CartesianGrid {...gridStyle} vertical={false} />
+                  <XAxis dataKey="date" {...axisStyle} tickFormatter={d => d.slice(5)} />
+                  <YAxis {...axisStyle} domain={[130, 180]} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null
+                      const d = payload[0].payload
+                      return (
+                        <div className="tooltip_surface_card chart_theme_tooltip" data-name="foulee_tip">
+                          <div className="text-xs text-txt-secondary">{d.date} · {d.dist} km</div>
+                          <div className={`text-base font-mono font-bold mt-0.5 ${d.spm >= 155 ? 'text-emerald-400' : d.spm >= 148 ? 'text-amber-400' : 'text-red-400'}`}>
+                            {d.spm} spm
+                          </div>
+                        </div>
+                      )
+                    }}
+                  />
+                  <ReferenceLine y={155} stroke="#22c55e" strokeDasharray="4 2" strokeOpacity={0.7}
+                    label={{ value: 'cible min', position: 'right', fontSize: 10, fill: '#22c55e', opacity: 0.8 }} />
+                  <ReferenceLine y={170} stroke="#22c55e" strokeDasharray="4 2" strokeOpacity={0.4}
+                    label={{ value: 'cible max', position: 'right', fontSize: 10, fill: '#22c55e', opacity: 0.5 }} />
+                  <Bar dataKey="spm" radius={[3, 3, 0, 0]} maxBarSize={32}>
+                    {cadRuns.map((entry, i) => (
+                      <Cell key={i} fill={entry.spm >= 155 ? '#22c55e' : entry.spm >= 148 ? '#f59e0b' : '#ef4444'} fillOpacity={0.8} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartCard>
+            {avg < 155 && (
+              <div className="mt-4 p-4 rounded-xl border border-amber-500/20 bg-amber-500/5 text-sm progress_foulee_conseil" data-name="progress_foulee_conseil">
+                <span className="font-semibold text-amber-400">Exercice recommandé</span>
+                <span className="text-txt-secondary ml-2">
+                  1×/semaine en fin de footing : 4 × 30s à 78 pas/pied (= 156 spm). Récup 30s marche. Progression : +3 spm/mois.
+                </span>
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
       <ProgressInsights />
     </div>
   )
