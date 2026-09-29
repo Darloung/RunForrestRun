@@ -129,10 +129,10 @@ export function setManualFcMax(value) {
 
 // Default zones based on percentage of HRmax
 const DEFAULT_ZONE_PCTS = [
-  { zone: 1, label: 'Z1 - Récupération', min: 0.00, max: 0.65 },
-  { zone: 2, label: 'Z2 - Endurance', min: 0.65, max: 0.75 },
-  { zone: 3, label: 'Z3 - Tempo', min: 0.75, max: 0.85 },
-  { zone: 4, label: 'Z4 - Seuil', min: 0.85, max: 0.95 },
+  { zone: 1, label: 'Z1 - Récupération', min: 0.00, max: 0.68 },
+  { zone: 2, label: 'Z2 - Endurance', min: 0.68, max: 0.80 },
+  { zone: 3, label: 'Z3 - Tempo', min: 0.80, max: 0.88 },
+  { zone: 4, label: 'Z4 - Seuil', min: 0.88, max: 0.95 },
   { zone: 5, label: 'Z5 - VO2max', min: 0.95, max: 1.00 },
 ]
 
