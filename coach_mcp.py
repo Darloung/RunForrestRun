@@ -377,7 +377,7 @@ def donnees_recuperation(jours: int = 7) -> dict[str, Any]:
     from datetime import timedelta
 
     db, _ = _plan_write_deps()
-    import db as _db_mod
+    import database_pg as _db_mod
 
     today = date.today()
 
@@ -559,7 +559,7 @@ def analyse_foulee(nombre: int = 6) -> dict[str, Any]:
     Utilise ces données pour identifier un manque de cadence, une foulée
     trop longue/courte, ou une régression sur les dernières semaines.
     """
-    import db as _db_mod
+    import database_pg as _db_mod
     from datetime import timedelta
 
     try:
