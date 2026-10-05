@@ -1782,21 +1782,35 @@ def _ensure_activity_splits_id_default(cur) -> None:
     still collided with an old row.
     """
     cur.execute("SELECT pg_advisory_xact_lock(hashtext('activity_splits_id_default'))")
+    # Check if the id column exists at all first
     cur.execute("""
-        SELECT column_default
+        SELECT column_name
         FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = 'activity_splits'
           AND column_name = 'id'
     """)
-    row = cur.fetchone()
-    if not row or not row[0]:
+    col_exists = cur.fetchone() is not None
+    if not col_exists:
         cur.execute("CREATE SEQUENCE IF NOT EXISTS activity_splits_id_seq")
+        cur.execute("ALTER TABLE activity_splits ADD COLUMN IF NOT EXISTS id BIGINT DEFAULT nextval('activity_splits_id_seq')")
         cur.execute("ALTER SEQUENCE activity_splits_id_seq OWNED BY activity_splits.id")
+    else:
         cur.execute("""
-            ALTER TABLE activity_splits
-            ALTER COLUMN id SET DEFAULT nextval('activity_splits_id_seq')
+            SELECT column_default
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name = 'activity_splits'
+              AND column_name = 'id'
         """)
+        row = cur.fetchone()
+        if not row or not row[0]:
+            cur.execute("CREATE SEQUENCE IF NOT EXISTS activity_splits_id_seq")
+            cur.execute("ALTER SEQUENCE activity_splits_id_seq OWNED BY activity_splits.id")
+            cur.execute("""
+                ALTER TABLE activity_splits
+                ALTER COLUMN id SET DEFAULT nextval('activity_splits_id_seq')
+            """)
 
     cur.execute("SELECT pg_get_serial_sequence('public.activity_splits', 'id')")
     sequence = cur.fetchone()[0]
