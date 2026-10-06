@@ -21,7 +21,7 @@ from typing import Any
 from garminconnect import Garmin, GarminConnectAuthenticationError
 
 import db
-from garmin_health import extract_sleep_snapshot, fetch_run_health_snapshot
+from garmin_health import extract_hrv_snapshot, extract_resting_hr_snapshot, extract_sleep_snapshot, fetch_run_health_snapshot
 
 GARMIN_TOKEN_DIR = os.environ.get("GARMIN_TOKEN_DIR", "")
 GARMIN_TOKEN_FILE = "garmin_tokens.json"
@@ -1708,6 +1708,42 @@ def _refresh_metrics(api: Garmin, result: dict[str, Any]) -> None:
             print(f"[GARMIN] upsert_sleep_score failed for {sleep_day}: {type(exc).__name__}: {exc}", file=sys.stderr)
     if sleep_added:
         result["sleep_history"] = sleep_added
+    # Daily HRV — fetch independently of runs so non-run days show current HRV.
+    hrv_added = 0
+    for day in (
+        (current_day - timedelta(days=1)).isoformat(),
+        current_day.isoformat(),
+    ):
+        hrv_payload = _safe(lambda d=day: api.get_hrv_data(d), f"get_hrv_data({day})")
+        hrv = extract_hrv_snapshot(hrv_payload) if hrv_payload else None
+        if not hrv:
+            continue
+        hrv_day = hrv.get("health_hrv_date") or day
+        rhr_payload = _safe(lambda d=day: api.get_heart_rates(d), f"get_heart_rates({day})")
+        rhr = extract_resting_hr_snapshot(rhr_payload) if rhr_payload else None
+        try:
+            if db.upsert_garmin_health_daily(
+                str(hrv_day)[:10],
+                hrv.get("health_hrv_last_night_avg_ms"),
+                hrv.get("health_hrv_weekly_avg_ms"),
+                hrv.get("health_hrv_status"),
+                hrv.get("health_hrv_baseline_low_ms"),
+                hrv.get("health_hrv_baseline_high_ms"),
+                rhr.get("health_resting_hr_bpm") if rhr else None,
+                rhr.get("health_resting_hr_7d_avg_bpm") if rhr else None,
+            ):
+                hrv_added += 1
+                print(
+                    f"[GARMIN] garmin_health_daily {hrv_day}: "
+                    f"hrv={hrv.get('health_hrv_last_night_avg_ms')} "
+                    f"status={hrv.get('health_hrv_status')} "
+                    f"rhr={rhr.get('health_resting_hr_bpm') if rhr else '-'}",
+                    file=sys.stderr,
+                )
+        except Exception as exc:
+            print(f"[GARMIN] upsert_garmin_health_daily failed for {hrv_day}: {type(exc).__name__}: {exc}", file=sys.stderr)
+    if hrv_added:
+        result["health_daily"] = hrv_added
     # Training status
     ts = _safe(lambda: api.get_training_status(today), "get_training_status")
     print(f"[GARMIN] training_status raw: {str(ts)[:600]}", file=sys.stderr)

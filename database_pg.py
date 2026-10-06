@@ -241,6 +241,18 @@ _CREATE_SLEEP_SQL = """CREATE TABLE IF NOT EXISTS sleep_history (
         updated_at TIMESTAMPTZ DEFAULT NOW()
     )"""
 
+_CREATE_GARMIN_HEALTH_DAILY_SQL = """CREATE TABLE IF NOT EXISTS garmin_health_daily (
+        date TEXT PRIMARY KEY,
+        hrv_last_night_avg_ms DOUBLE PRECISION,
+        hrv_weekly_avg_ms DOUBLE PRECISION,
+        hrv_status TEXT,
+        hrv_baseline_low_ms DOUBLE PRECISION,
+        hrv_baseline_high_ms DOUBLE PRECISION,
+        resting_hr_bpm INTEGER,
+        resting_hr_7d_avg_bpm DOUBLE PRECISION,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+    )"""
+
 _CREATE_SHOES_SQL = """CREATE TABLE IF NOT EXISTS shoes (
         id TEXT PRIMARY KEY,
         athlete_id BIGINT,
@@ -286,6 +298,7 @@ _CREATE_PLAN_OVERRIDES_SQL = """CREATE TABLE IF NOT EXISTS plan_overrides (
 SMALL_TABLE_DDL = {
     "vo2max_history": _CREATE_VO2MAX_SQL,
     "sleep_history": _CREATE_SLEEP_SQL,
+    "garmin_health_daily": _CREATE_GARMIN_HEALTH_DAILY_SQL,
     "shoes": _CREATE_SHOES_SQL,
     "bikes": _CREATE_BIKES_SQL,
     "sync_meta": _CREATE_SYNC_META_SQL,
@@ -2945,6 +2958,94 @@ def get_latest_sleep_score(target_date: str) -> dict | None:
         }
     except Exception as e:
         print(f"[DB] get_latest_sleep_score failed: {type(e).__name__}: {e}", file=sys.stderr)
+        try:
+            conn.rollback()
+        except Exception:
+            pass
+        return None
+
+
+def upsert_garmin_health_daily(
+    day: str,
+    hrv_last_night: float | None,
+    hrv_weekly: float | None,
+    hrv_status: str | None,
+    hrv_baseline_low: float | None,
+    hrv_baseline_high: float | None,
+    resting_hr: int | None = None,
+    resting_hr_7d: float | None = None,
+) -> bool:
+    """Store daily Garmin health metrics (HRV + resting HR) independent of runs."""
+    if all(v is None for v in [hrv_last_night, hrv_weekly, hrv_status, resting_hr]):
+        return False
+    upsert_sql = """
+        INSERT INTO garmin_health_daily
+            (date, hrv_last_night_avg_ms, hrv_weekly_avg_ms, hrv_status,
+             hrv_baseline_low_ms, hrv_baseline_high_ms,
+             resting_hr_bpm, resting_hr_7d_avg_bpm, updated_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+        ON CONFLICT (date) DO UPDATE SET
+            hrv_last_night_avg_ms = COALESCE(EXCLUDED.hrv_last_night_avg_ms, garmin_health_daily.hrv_last_night_avg_ms),
+            hrv_weekly_avg_ms = COALESCE(EXCLUDED.hrv_weekly_avg_ms, garmin_health_daily.hrv_weekly_avg_ms),
+            hrv_status = COALESCE(EXCLUDED.hrv_status, garmin_health_daily.hrv_status),
+            hrv_baseline_low_ms = COALESCE(EXCLUDED.hrv_baseline_low_ms, garmin_health_daily.hrv_baseline_low_ms),
+            hrv_baseline_high_ms = COALESCE(EXCLUDED.hrv_baseline_high_ms, garmin_health_daily.hrv_baseline_high_ms),
+            resting_hr_bpm = COALESCE(EXCLUDED.resting_hr_bpm, garmin_health_daily.resting_hr_bpm),
+            resting_hr_7d_avg_bpm = COALESCE(EXCLUDED.resting_hr_7d_avg_bpm, garmin_health_daily.resting_hr_7d_avg_bpm),
+            updated_at = NOW()
+    """
+    params = [
+        str(day)[:10],
+        _safe_float(hrv_last_night),
+        _safe_float(hrv_weekly),
+        hrv_status,
+        _safe_float(hrv_baseline_low),
+        _safe_float(hrv_baseline_high),
+        _safe_int(resting_hr, None),
+        _safe_float(resting_hr_7d),
+    ]
+    conn = _safe_conn()
+    cur = conn.cursor()
+    cur.execute(_CREATE_GARMIN_HEALTH_DAILY_SQL)
+    cur.execute(upsert_sql, params)
+    conn.commit()
+
+    def _repl(c):
+        c.execute(_CREATE_GARMIN_HEALTH_DAILY_SQL)
+        c.execute(upsert_sql, params)
+    _replicate(f"upsert_garmin_health_daily[{day}]", _repl)
+    return True
+
+
+def get_garmin_health_daily(target_date: str) -> dict | None:
+    """Return daily health metrics for a given date, or None when unavailable."""
+    conn = _safe_conn()
+    cur = conn.cursor()
+    try:
+        cur.execute(_CREATE_GARMIN_HEALTH_DAILY_SQL)
+        cur.execute("""
+            SELECT date, hrv_last_night_avg_ms, hrv_weekly_avg_ms, hrv_status,
+                   hrv_baseline_low_ms, hrv_baseline_high_ms,
+                   resting_hr_bpm, resting_hr_7d_avg_bpm
+            FROM garmin_health_daily
+            WHERE date = %s
+            LIMIT 1
+        """, [str(target_date)[:10]])
+        row = cur.fetchone()
+        if not row:
+            return None
+        return {
+            "date": str(row[0]),
+            "hrv_last_night_avg_ms": row[1],
+            "hrv_weekly_avg_ms": row[2],
+            "hrv_status": row[3],
+            "hrv_baseline_low_ms": row[4],
+            "hrv_baseline_high_ms": row[5],
+            "resting_hr_bpm": row[6],
+            "resting_hr_7d_avg_bpm": row[7],
+        }
+    except Exception as e:
+        print(f"[DB] get_garmin_health_daily failed: {type(e).__name__}: {e}", file=sys.stderr)
         try:
             conn.rollback()
         except Exception:

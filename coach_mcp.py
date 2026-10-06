@@ -399,7 +399,39 @@ def donnees_recuperation(jours: int = 7) -> dict[str, Any]:
                 "duree_heures": duration_h,
             })
 
-    # --- HRV, FC repos, body battery (depuis les activites recentes) ---
+    # --- HRV, FC repos (garmin_health_daily = source primaire, activités = fallback) ---
+    sante = []
+    # Primary: daily HRV table (one row per day, independent of runs)
+    try:
+        conn = _db_mod._safe_conn()
+        cur = conn.cursor()
+        since = (today - timedelta(days=jours)).isoformat()
+        cur.execute("""
+            SELECT
+                date AS jour,
+                hrv_last_night_avg_ms AS health_hrv_last_night_avg_ms,
+                hrv_weekly_avg_ms AS health_hrv_weekly_avg_ms,
+                hrv_status AS health_hrv_status,
+                hrv_baseline_low_ms AS health_hrv_baseline_low_ms,
+                hrv_baseline_high_ms AS health_hrv_baseline_high_ms,
+                resting_hr_bpm AS health_resting_hr_bpm,
+                resting_hr_7d_avg_bpm AS health_resting_hr_7d_avg_bpm
+            FROM garmin_health_daily
+            WHERE date >= %s
+              AND (hrv_last_night_avg_ms IS NOT NULL OR resting_hr_bpm IS NOT NULL)
+            ORDER BY date DESC
+            LIMIT %s
+        """, [since, jours])
+        cols = [d[0] for d in cur.description]
+        sante = [dict(zip(cols, row)) for row in cur.fetchall()]
+        for r in sante:
+            if r.get("jour"):
+                r["jour"] = str(r["jour"])[:10]
+    except Exception:
+        sante = []
+
+    # Fallback: activities table for runs that predate garmin_health_daily
+    days_covered = {r["jour"] for r in sante if r.get("jour")}
     try:
         conn = _db_mod._safe_conn()
         cur = conn.cursor()
@@ -425,12 +457,15 @@ def donnees_recuperation(jours: int = 7) -> dict[str, Any]:
             LIMIT %s
         """, [since, jours])
         cols = [d[0] for d in cur.description]
-        sante = [dict(zip(cols, row)) for row in cur.fetchall()]
-        for r in sante:
+        for row in cur.fetchall():
+            r = dict(zip(cols, row))
             if r.get("jour"):
                 r["jour"] = str(r["jour"])[:10]
+            if r["jour"] not in days_covered:
+                sante.append(r)
+        sante.sort(key=lambda r: r.get("jour", ""), reverse=True)
     except Exception:
-        sante = []
+        pass
 
     # --- Scores moyens ---
     scores = [r["score"] for r in sommeil if r.get("score") is not None]
