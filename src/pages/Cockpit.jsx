@@ -4,8 +4,8 @@ import { Pencil, Check, X, RotateCcw, FileText, Download, HeartPulse } from 'luc
 import posthog from 'posthog-js'
 import { useActivities } from '../contexts/ActivityContext'
 import { computeCockpit, parseLocalDate, fmtPace, localDateStr } from '../lib/compute'
-import { loadDailyTraining, peekDailyTraining, getActivityStreams, recentTrainingRunsFromActivities } from '../api'
-import { computeLoadDistribution } from '../lib/training'
+import { loadDailyTraining, peekDailyTraining, getActivityStreams, recentTrainingRunsFromActivities, loadTrainingStatus } from '../api'
+import { computeLoadDistribution, computeTrainingLoad } from '../lib/training'
 import {
   getCurrentMaxHrInfo,
   setManualFcMax,
@@ -267,11 +267,18 @@ export default function Cockpit() {
   const [dailyTraining, setDailyTraining] = useState(null)
   const [dailyTrainingLoading, setDailyTrainingLoading] = useState(false)
   const [filteredMapStreams, setFilteredMapStreams] = useState({})
+  const [garminStatus, setGarminStatus] = useState(null)
   const mountedRef = useRef(false)
 
   useEffect(() => {
     mountedRef.current = true
     return () => { mountedRef.current = false }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    loadTrainingStatus().then(s => { if (!cancelled) setGarminStatus(s) })
+    return () => { cancelled = true }
   }, [])
 
   const trainingDay = localDateStr(new Date(now))
@@ -312,6 +319,18 @@ export default function Cockpit() {
     () => allActivities.reduce((sum, a) => sum + (a.distance || 0), 0) / 1000,
     [allActivities]
   )
+
+  // Training load (CTL/ATL/TSB) — Garmin-native values when available, EWMA fallback.
+  const trainingLoad = useMemo(() => {
+    const atl = garminStatus?.atl ?? null
+    const ctl = garminStatus?.ctl ?? null
+    if (atl !== null && ctl !== null) {
+      return { ctl: Math.round(ctl), atl: Math.round(atl), tsb: Math.round(ctl - atl), source: 'garmin' }
+    }
+    if (!allActivities.length) return null
+    const td = computeTrainingLoad(allActivities)
+    return { ctl: td.currentCTL, atl: td.currentATL, tsb: td.currentTSB, source: 'ewma' }
+  }, [garminStatus, allActivities, now])
 
   // FC max must be computed first — load distribution depends on it.
   const currentFcMaxInfo = useMemo(() => {
@@ -481,7 +500,7 @@ export default function Cockpit() {
             </div>
 
             {/* Hero stats grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3 cockpit_hero_stats" data-name="cockpit_hero_stats">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-11 gap-2 sm:gap-3 cockpit_hero_stats" data-name="cockpit_hero_stats">
               <HeroStat label="Semaine" value={data.week_volume} unit="km" stagger={1} />
               <HeroStat label="D+ semaine" value={data.week_elev > 0 ? data.week_elev : '—'} unit={data.week_elev > 0 ? 'm' : ''} stagger={2} />
               <HeroStat label="7 jours" value={data.volume_7d} unit="km" stagger={3} />
@@ -489,6 +508,9 @@ export default function Cockpit() {
               <HeroStat label="365 jours" value={data.volume_365d} unit="km" stagger={5} />
               <HeroStat label="Moy. 4 sem." value={data.avg_4_weeks} unit="km/s" stagger={6} />
               <HeroStat label="Total runs" value={data.total_activities} stagger={7} />
+              <HeroStat label="Fitness (CTL)" value={trainingLoad?.ctl ?? '—'} stagger={8} />
+              <HeroStat label="Fatigue (ATL)" value={trainingLoad?.atl ?? '—'} stagger={9} />
+              <HeroStat label="Forme (TSB)" value={trainingLoad?.tsb ?? '—'} stagger={10} />
 
               {/* FC Max inline edit */}
               <div className="hero-stat relative cockpit_fcmax_card" data-stagger={8} data-name="cockpit_fcmax_card">

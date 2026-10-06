@@ -1465,6 +1465,13 @@ def _normalize_training_status(ts: Any) -> dict[str, Any]:
                     or first.get("trainingStatus")
                 )
                 out["fitnessTrend"] = first.get("fitnessTrend")
+                acwr_dto = first.get("acuteTrainingLoadDTO") or {}
+                if isinstance(acwr_dto, dict):
+                    out["atl"] = acwr_dto.get("dailyTrainingLoadAcute")
+                    out["ctl"] = acwr_dto.get("dailyTrainingLoadChronic")
+                    out["acwr_ratio"] = acwr_dto.get("dailyAcuteChronicWorkloadRatio")
+                    out["acwr_status"] = acwr_dto.get("acwrStatus")
+                out["calendarDate"] = first.get("calendarDate")
         load = (ts or {}).get("mostRecentTrainingLoadBalance") or {}
         load_map = load.get("metricsTrainingLoadBalanceDTOMap") if isinstance(load, dict) else None
         if isinstance(load_map, dict) and load_map:
